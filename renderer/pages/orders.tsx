@@ -1,89 +1,81 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Head from 'next/head';
-import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 
-const OrdersPage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+interface Order {
+  ref: string;
+  total: number;
+  items: number;
+  time: string;
+}
+
+export default function OrdersPage() {
+  // Sample orders data
+  const orders: Order[] = [
+    {
+      ref: "1",
+      total: 212.40,
+      items: 1,
+      time: "1/22/2025, 5:29:34 PM"
+    },
+    {
+      ref: "2",
+      total: 424.80,
+      items: 2,
+      time: "1/22/2025, 5:31:25 PM"
+    },
+    {
+      ref: "3",
+      total: 672.60,
+      items: 4,
+      time: "1/22/2025, 5:31:37 PM"
+    },
+    {
+      ref: "4",
+      total: 865.00,
+      items: 5,
+      time: "1/22/2025, 5:31:45 PM"
+    }
+  ];
 
   return (
     <Layout>
       <Head>
-        <title>Orders - POS System</title>
+        <title>Open Orders</title>
       </Head>
 
-      <main className="py-6 px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-2xl font-semibold text-gray-900">Orders</h1>
-          <button
-            type="button"
-            className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
-          >
-            <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
-            New Order
-          </button>
+      <div className="p-6 h-screen flex flex-col">
+        <h1 className="text-2xl font-semibold mb-6">Open Orders</h1>
+
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <input
+            type="text"
+            placeholder="Search order by reference"
+            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-500"
+          />
+          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
         </div>
 
-        {/* Search and Filters */}
-        <div className="mb-6">
-          <div className="relative rounded-md shadow-sm">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" aria-hidden="true" />
-            </div>
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="block w-full rounded-md border-0 py-1.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-              placeholder="Search orders..."
-            />
-          </div>
-        </div>
-
-        {/* Orders Table */}
-        <div className="mt-8 flow-root">
-          <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
-            <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                        Order ID
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Customer
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Date
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Total
-                      </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
-                        Status
-                      </th>
-                      <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-                        <span className="sr-only">Actions</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 bg-white">
-                    <tr>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 sm:pl-6" colSpan={6}>
-                        <div className="text-center">No orders found</div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+        {/* Orders Grid with Scrollbar */}
+        <div className="flex-1 overflow-y-auto pr-2" style={{ scrollbarWidth: 'thin' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {orders.map((order) => (
+              <div key={order.ref} className="bg-white shadow-sm border border-gray-100 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="font-medium text-gray-800">Ref: {order.ref}</span>
+                  <span className="text-gray-600">Items: {order.items}</span>
+                </div>
+                <div>
+                  <div className="text-gray-700">Total: RS. {order.total.toFixed(2)}</div>
+                  <div className="text-sm text-gray-500">Time: {order.time}</div>
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
-      </main>
+      </div>
     </Layout>
   );
-};
-
-export default OrdersPage;
+}
