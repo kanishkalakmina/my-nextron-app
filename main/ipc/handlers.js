@@ -1,4 +1,4 @@
-const { categoryQueries, productQueries, orderQueries } = require('../db');
+import { categoryQueries, productQueries, orderQueries } from '../db/index.js';
 
 // Categories handlers
 const categoryHandlers = {
@@ -175,7 +175,7 @@ const orderHandlers = {
   }
 };
 
-module.exports = {
+export {
   categoryHandlers,
   productHandlers,
   orderHandlers
