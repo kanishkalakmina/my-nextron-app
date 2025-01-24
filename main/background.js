@@ -2,7 +2,7 @@ import path from 'path'
 import { app, ipcMain, dialog } from 'electron'
 import serve from 'electron-serve'
 import { createWindow } from './helpers'
-import { categoryHandlers, productHandlers, orderHandlers, fileHandlers } from './ipc/handlers'
+import { categoryHandlers, productHandlers, orderHandlers } from './ipc/handlers'
 
 const isProd = process.env.NODE_ENV === 'production'
 
@@ -35,23 +35,6 @@ const registerIpcHandlers = () => {
   ipcMain.handle('get-order-by-id', orderHandlers.getOrderById)
   ipcMain.handle('update-order-status', orderHandlers.updateOrderStatus)
   ipcMain.handle('search-orders', orderHandlers.searchOrders)
-
-  // File handling
-  ipcMain.handle('upload-image', fileHandlers.uploadImage)
-  ipcMain.handle('select-image', async () => {
-    const result = await dialog.showOpenDialog({
-      properties: ['openFile'],
-      filters: [
-        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'gif'] }
-      ]
-    })
-    
-    if (!result.canceled && result.filePaths.length > 0) {
-      const filePath = result.filePaths[0]
-      return await fileHandlers.uploadImage(null, { filePath })
-    }
-    return { success: false, error: 'No file selected' }
-  })
 }
 
 ;(async () => {

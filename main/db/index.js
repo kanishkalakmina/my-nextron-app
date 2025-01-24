@@ -1,21 +1,27 @@
-import Database from 'better-sqlite3';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import Database from "better-sqlite3";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // In development, store the database in the project directory
 // In production, store it in the user's app data directory
-const isProd = process.env.NODE_ENV === 'production';
-const dbPath = isProd 
-  ? path.join(process.env.APPDATA, 'my-nextron-app/db.sqlite') 
-  : path.join(__dirname, '../../db.sqlite');
+const isProd = process.env.NODE_ENV === "production";
+const dbPath = isProd
+  ? path.join(process.env.APPDATA, "my-nextron-app/db.sqlite")
+  : path.join(__dirname, "../../db.sqlite");
 
 const db = new Database(dbPath);
 
 // Initialize tables
 db.exec(`
+  -- Drop existing tables to recreate schema
+  DROP TABLE IF EXISTS order_items;
+  DROP TABLE IF EXISTS orders;
+  DROP TABLE IF EXISTS products;
+  DROP TABLE IF EXISTS categories;
+
   -- Create categories table
   CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,13 +31,12 @@ db.exec(`
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Create products table with image field
+  -- Create products table
   CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
     description TEXT,
     price DECIMAL(10,2) NOT NULL,
-    image TEXT,
     category_id INTEGER,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -67,65 +72,70 @@ db.exec(`
 
 // Categories CRUD
 const categoryQueries = {
-  create: db.prepare('INSERT INTO categories (name, description) VALUES (?, ?)'),
-  getAll: db.prepare('SELECT * FROM categories ORDER BY created_at DESC'),
-  getById: db.prepare('SELECT * FROM categories WHERE id = ?'),
-  update: db.prepare('UPDATE categories SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
-  delete: db.prepare('DELETE FROM categories WHERE id = ?'),
-  search: db.prepare('SELECT * FROM categories WHERE name LIKE ? ORDER BY created_at DESC')
+  create: db.prepare(
+    "INSERT INTO categories (name, description) VALUES (?, ?)"
+  ),
+  getAll: db.prepare("SELECT * FROM categories ORDER BY created_at DESC"),
+  getById: db.prepare("SELECT * FROM categories WHERE id = ?"),
+  update: db.prepare(
+    "UPDATE categories SET name = ?, description = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+  ),
+  delete: db.prepare("DELETE FROM categories WHERE id = ?"),
+  search: db.prepare(
+    "SELECT * FROM categories WHERE name LIKE ? ORDER BY created_at DESC"
+  ),
 };
 
 // Products CRUD
 const productQueries = {
   create: db.prepare(`
-    INSERT INTO products (name, description, price, image, category_id) 
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO products (name, description, price, category_id) 
+    VALUES (?, ?, ?, ?)
   `),
   getAll: db.prepare(`
     SELECT 
-      products.*,
-      categories.name as category_name,
-      categories.description as category_description
-    FROM products 
-    LEFT JOIN categories ON products.category_id = categories.id 
-    ORDER BY products.created_at DESC
+      p.*,
+      c.name as category_name
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id 
+    ORDER BY p.created_at DESC
   `),
   getById: db.prepare(`
     SELECT 
-      products.*,
-      categories.name as category_name,
-      categories.description as category_description
-    FROM products 
-    LEFT JOIN categories ON products.category_id = categories.id 
-    WHERE products.id = ?
+      p.*,
+      c.name as category_name
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id 
+    WHERE p.id = ?
   `),
   update: db.prepare(`
     UPDATE products 
-    SET name = ?, 
-        description = ?, 
-        price = ?, 
-        image = ?, 
-        category_id = ?, 
-        updated_at = CURRENT_TIMESTAMP 
+    SET 
+      name = ?, 
+      description = ?, 
+      price = ?, 
+      category_id = ?,
+      updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `),
-  delete: db.prepare('DELETE FROM products WHERE id = ?'),
+  delete: db.prepare("DELETE FROM products WHERE id = ?"),
   search: db.prepare(`
     SELECT 
-      products.*,
-      categories.name as category_name,
-      categories.description as category_description
-    FROM products 
-    LEFT JOIN categories ON products.category_id = categories.id 
-    WHERE products.name LIKE ? 
-    ORDER BY products.created_at DESC
-  `)
+      p.*,
+      c.name as category_name
+    FROM products p
+    LEFT JOIN categories c ON p.category_id = c.id 
+    WHERE p.name LIKE ?
+    ORDER BY p.created_at DESC
+  `),
 };
 
 // Orders CRUD
 const orderQueries = {
-  create: db.prepare('INSERT INTO orders (total_amount, status) VALUES (?, ?)'),
-  createOrderItem: db.prepare('INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)'),
+  create: db.prepare("INSERT INTO orders (total_amount, status) VALUES (?, ?)"),
+  createOrderItem: db.prepare(
+    "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)"
+  ),
   getAll: db.prepare(`
     SELECT 
       orders.*,
@@ -137,18 +147,19 @@ const orderQueries = {
     GROUP BY orders.id
     ORDER BY orders.created_at DESC
   `),
-  getById: db.prepare('SELECT * FROM orders WHERE id = ?'),
+  getById: db.prepare("SELECT * FROM orders WHERE id = ?"),
   getOrderItems: db.prepare(`
     SELECT 
       order_items.*,
       products.name as product_name,
-      products.description as product_description,
-      products.image as product_image
+      products.description as product_description
     FROM order_items 
     LEFT JOIN products ON order_items.product_id = products.id 
     WHERE order_items.order_id = ?
   `),
-  updateStatus: db.prepare('UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'),
+  updateStatus: db.prepare(
+    "UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?"
+  ),
   search: db.prepare(`
     SELECT 
       orders.*,
@@ -160,11 +171,7 @@ const orderQueries = {
     WHERE orders.id LIKE ? 
     GROUP BY orders.id
     ORDER BY orders.created_at DESC
-  `)
+  `),
 };
 
-export {
-  categoryQueries,
-  productQueries,
-  orderQueries
-};
+export { categoryQueries, productQueries, orderQueries };

@@ -144,8 +144,4 @@ contextBridge.exposeInMainWorld('electron', {
       return { success: false, error: error.message };
     }
   },
-
-  // File handling
-  selectImage: () => ipcRenderer.invoke('select-image'),
-  uploadImage: (filePath) => ipcRenderer.invoke('upload-image', { filePath })
 });

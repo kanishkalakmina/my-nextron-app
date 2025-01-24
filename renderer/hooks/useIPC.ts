@@ -1,37 +1,62 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 // Define the window interface to include our electron API
 declare global {
   interface Window {
     electron: {
       // Categories
-      createCategory: (data: { name: string; description?: string }) => Promise<{ success: boolean; id?: number; error?: string }>;
-      getAllCategories: () => Promise<{ success: boolean; categories?: any[]; error?: string }>;
-      getCategoryById: (id: number) => Promise<{ success: boolean; category?: any; error?: string }>;
-      updateCategory: (data: { id: number; name: string; description?: string }) => Promise<{ success: boolean; error?: string }>;
-      deleteCategory: (id: number) => Promise<{ success: boolean; error?: string }>;
-      searchCategories: (searchTerm: string) => Promise<{ success: boolean; categories?: any[]; error?: string }>;
+      createCategory: (data: {
+        name: string;
+        description?: string;
+      }) => Promise<{ success: boolean; id?: number; error?: string }>;
+      getAllCategories: () => Promise<{
+        success: boolean;
+        categories?: any[];
+        error?: string;
+      }>;
+      getCategoryById: (
+        id: number
+      ) => Promise<{ success: boolean; category?: any; error?: string }>;
+      updateCategory: (data: {
+        id: number;
+        name: string;
+        description?: string;
+      }) => Promise<{ success: boolean; error?: string }>;
+      deleteCategory: (
+        id: number
+      ) => Promise<{ success: boolean; error?: string }>;
+      searchCategories: (
+        searchTerm: string
+      ) => Promise<{ success: boolean; categories?: any[]; error?: string }>;
 
       // Products
-      createProduct: (data: { 
-        name: string; 
+      createProduct: (data: {
+        name: string;
         description?: string;
         price: number;
-        stock: number;
-        categoryId?: number;
+        category_id?: number;
       }) => Promise<{ success: boolean; id?: number; error?: string }>;
-      getAllProducts: () => Promise<{ success: boolean; products?: any[]; error?: string }>;
-      getProductById: (id: number) => Promise<{ success: boolean; product?: any; error?: string }>;
+      getAllProducts: () => Promise<{
+        success: boolean;
+        products?: any[];
+        error?: string;
+      }>;
+      getProductById: (
+        id: number
+      ) => Promise<{ success: boolean; product?: any; error?: string }>;
       updateProduct: (data: {
         id: number;
         name: string;
         description?: string;
         price: number;
-        stock: number;
-        categoryId?: number;
+        category_id?: number;
       }) => Promise<{ success: boolean; error?: string }>;
-      deleteProduct: (id: number) => Promise<{ success: boolean; error?: string }>;
-      searchProducts: (searchTerm: string) => Promise<{ success: boolean; products?: any[]; error?: string }>;
+      deleteProduct: (
+        id: number
+      ) => Promise<{ success: boolean; error?: string }>;
+      searchProducts: (
+        searchTerm: string
+      ) => Promise<{ success: boolean; products?: any[]; error?: string }>;
 
       // Orders
       createOrder: (data: {
@@ -42,10 +67,21 @@ declare global {
         }>;
         totalAmount: number;
       }) => Promise<{ success: boolean; orderId?: number; error?: string }>;
-      getAllOrders: () => Promise<{ success: boolean; orders?: any[]; error?: string }>;
-      getOrderById: (id: number) => Promise<{ success: boolean; order?: any; error?: string }>;
-      updateOrderStatus: (data: { id: number; status: string }) => Promise<{ success: boolean; error?: string }>;
-      searchOrders: (searchTerm: string) => Promise<{ success: boolean; orders?: any[]; error?: string }>;
+      getAllOrders: () => Promise<{
+        success: boolean;
+        orders?: any[];
+        error?: string;
+      }>;
+      getOrderById: (
+        id: number
+      ) => Promise<{ success: boolean; order?: any; error?: string }>;
+      updateOrderStatus: (data: {
+        id: number;
+        status: string;
+      }) => Promise<{ success: boolean; error?: string }>;
+      searchOrders: (
+        searchTerm: string
+      ) => Promise<{ success: boolean; orders?: any[]; error?: string }>;
     };
   }
 }
@@ -66,12 +102,15 @@ export function useIPC(options: UseIPCOptions = {}) {
   };
 
   // Categories
-  const createCategory = async (data: { name: string; description?: string }) => {
+  const createCategory = async (data: {
+    name: string;
+    description?: string;
+  }) => {
     setLoading(true);
     try {
       const result = await window.electron.createCategory(data);
       if (!result.success) {
-        handleError(result.error || 'Failed to create category');
+        handleError(result.error || "Failed to create category");
         return null;
       }
       return result.id;
@@ -85,7 +124,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     try {
       const result = await window.electron.getAllCategories();
       if (!result.success) {
-        handleError(result.error || 'Failed to fetch categories');
+        handleError(result.error || "Failed to fetch categories");
         return [];
       }
       return result.categories;
@@ -94,12 +133,16 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
-  const updateCategory = async (data: { id: number; name: string; description?: string }) => {
+  const updateCategory = async (data: {
+    id: number;
+    name: string;
+    description?: string;
+  }) => {
     setLoading(true);
     try {
       const result = await window.electron.updateCategory(data);
       if (!result.success) {
-        handleError(result.error || 'Failed to update category');
+        handleError(result.error || "Failed to update category");
         return false;
       }
       return true;
@@ -113,7 +156,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     try {
       const result = await window.electron.deleteCategory(id);
       if (!result.success) {
-        handleError(result.error || 'Failed to delete category');
+        handleError(result.error || "Failed to delete category");
         return null;
       }
       return result.success;
@@ -127,14 +170,13 @@ export function useIPC(options: UseIPCOptions = {}) {
     name: string;
     description?: string;
     price: number;
-    stock: number;
-    categoryId?: number;
+    category_id?: number;
   }) => {
     setLoading(true);
     try {
       const result = await window.electron.createProduct(data);
       if (!result.success) {
-        handleError(result.error || 'Failed to create product');
+        handleError(result.error || "Failed to create product");
         return null;
       }
       return result.id;
@@ -148,7 +190,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     try {
       const result = await window.electron.getAllProducts();
       if (!result.success) {
-        handleError(result.error || 'Failed to fetch products');
+        handleError(result.error || "Failed to fetch products");
         return [];
       }
       return result.products;
@@ -170,7 +212,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     try {
       const result = await window.electron.createOrder(data);
       if (!result.success) {
-        handleError(result.error || 'Failed to create order');
+        handleError(result.error || "Failed to create order");
         return null;
       }
       return result.orderId;
@@ -184,7 +226,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     try {
       const result = await window.electron.getAllOrders();
       if (!result.success) {
-        handleError(result.error || 'Failed to fetch orders');
+        handleError(result.error || "Failed to fetch orders");
         return [];
       }
       return result.orders;

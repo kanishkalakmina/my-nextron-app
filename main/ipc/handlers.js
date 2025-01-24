@@ -1,22 +1,5 @@
 import { categoryQueries, productQueries, orderQueries } from '../db/index.js';
-import fs from 'fs';
-import path from 'path';
 import { app } from 'electron';
-import crypto from 'crypto';
-
-// Create uploads directory if it doesn't exist
-const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-// Generate unique filename
-const generateUniqueFileName = (originalName) => {
-  const timestamp = Date.now();
-  const hash = crypto.createHash('md5').update(originalName + timestamp).digest('hex');
-  const ext = path.extname(originalName);
-  return `${hash}${ext}`;
-};
 
 // Categories handlers
 const categoryHandlers = {
@@ -77,25 +60,13 @@ const categoryHandlers = {
 
 // Products handlers
 const productHandlers = {
-  createProduct: async (event, { name, description, price, categoryId, image }) => {
+  createProduct: async (event, { name, description, price, category_id }) => {
     try {
-      let imagePath = null;
-      
-      // If image is a file path (from file selection), upload it
-      if (image && image.startsWith('file://')) {
-        const filePath = image.replace('file://', '');
-        const uploadResult = await fileHandlers.uploadImage(null, { filePath });
-        if (uploadResult.success) {
-          imagePath = uploadResult.imagePath;
-        }
-      }
-      
       const result = productQueries.create.run(
         name, 
         description, 
         price, 
-        imagePath, 
-        categoryId
+        category_id
       );
       
       return { success: true, id: result.lastInsertRowid };
@@ -106,10 +77,7 @@ const productHandlers = {
 
   getAllProducts: async () => {
     try {
-      const products = productQueries.getAll.all().map(product => ({
-        ...product,
-        image: fileHandlers.getImageUrl(product.image)
-      }));
+      const products = productQueries.getAll.all();
       return { success: true, products };
     } catch (error) {
       return { success: false, error: error.message };
@@ -119,37 +87,31 @@ const productHandlers = {
   getProductById: async (event, { id }) => {
     try {
       const product = productQueries.getById.get(id);
-      if (product) {
-        product.image = fileHandlers.getImageUrl(product.image);
-      }
       return { success: true, product };
     } catch (error) {
       return { success: false, error: error.message };
     }
   },
 
-  updateProduct: async (event, { id, name, description, price, categoryId, image }) => {
+  updateProduct: async (event, { id, name, description, price, category_id }) => {
     try {
-      let imagePath = image;
-      
-      // If image is a file path (from file selection), upload it
-      if (image && image.startsWith('file://')) {
-        const filePath = image.replace('file://', '');
-        const uploadResult = await fileHandlers.uploadImage(null, { filePath });
-        if (uploadResult.success) {
-          imagePath = uploadResult.imagePath;
-        }
+      // Validate required fields
+      if (!name || !price || !category_id) {
+        return { success: false, error: 'Missing required fields' };
       }
-      
+
+      // Validate price is a positive number
+      if (price < 0) {
+        return { success: false, error: 'Price must be a positive number' };
+      }
+
       productQueries.update.run(
         name, 
-        description, 
+        description || '', 
         price, 
-        imagePath, 
-        categoryId, 
+        category_id,
         id
       );
-      
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -158,15 +120,6 @@ const productHandlers = {
 
   deleteProduct: async (event, { id }) => {
     try {
-      // Get product to delete its image
-      const product = productQueries.getById.get(id);
-      if (product && product.image) {
-        const imagePath = path.join(process.cwd(), 'public', product.image);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
-      }
-      
       productQueries.delete.run(id);
       return { success: true };
     } catch (error) {
@@ -176,10 +129,8 @@ const productHandlers = {
 
   searchProducts: async (event, { searchTerm }) => {
     try {
-      const products = productQueries.search.all(`%${searchTerm}%`).map(product => ({
-        ...product,
-        image: fileHandlers.getImageUrl(product.image)
-      }));
+      const searchPattern = `%${searchTerm}%`;
+      const products = productQueries.search.all(searchPattern);
       return { success: true, products };
     } catch (error) {
       return { success: false, error: error.message };
@@ -246,38 +197,8 @@ const orderHandlers = {
   }
 };
 
-// File handlers
-const fileHandlers = {
-  uploadImage: async (event, { filePath }) => {
-    try {
-      const originalName = path.basename(filePath);
-      const uniqueFileName = generateUniqueFileName(originalName);
-      const targetPath = path.join(uploadsDir, uniqueFileName);
-      
-      // Copy file to uploads directory
-      fs.copyFileSync(filePath, targetPath);
-      
-      // Return relative path to be stored in database
-      const relativePath = path.join('uploads', uniqueFileName).replace(/\\/g, '/');
-      
-      return { 
-        success: true, 
-        imagePath: relativePath
-      };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  getImageUrl: (imagePath) => {
-    if (!imagePath) return null;
-    return path.join('/', imagePath).replace(/\\/g, '/');
-  }
-};
-
 export {
   categoryHandlers,
   productHandlers,
-  orderHandlers,
-  fileHandlers
+  orderHandlers
 };

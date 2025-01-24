@@ -1,20 +1,35 @@
-import React, { useState, useEffect } from 'react';
-import Head from 'next/head';
-import { PlusIcon, MagnifyingGlassIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
-import Layout from '../components/Layout';
-import { useIPC } from '../hooks/useIPC';
+import React, { useState, useEffect } from "react";
+import Head from "next/head";
+import {
+  PlusIcon,
+  MagnifyingGlassIcon,
+  PencilSquareIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
+import Layout from "../components/Layout";
+import { useIPC } from "../hooks/useIPC";
 
 const CategoryPage = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [categories, setCategories] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
-  
-  const { loading, error, getAllCategories, createCategory, updateCategory, deleteCategory } = useIPC({
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    description: "",
+  });
+
+  const {
+    loading,
+    error,
+    getAllCategories,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+  } = useIPC({
     onError: (error) => {
-      console.error('Error:', error);
-    }
+      console.error("Error:", error);
+    },
   });
 
   useEffect(() => {
@@ -31,13 +46,13 @@ const CategoryPage = () => {
   const handleOpenModal = (category = null) => {
     if (category) {
       setEditingCategory(category);
-      setCategoryForm({ 
-        name: category.name || '', 
-        description: category.description || '' 
+      setCategoryForm({
+        name: category.name || "",
+        description: category.description || "",
       });
     } else {
       setEditingCategory(null);
-      setCategoryForm({ name: '', description: '' });
+      setCategoryForm({ name: "", description: "" });
     }
     setIsModalOpen(true);
   };
@@ -45,7 +60,7 @@ const CategoryPage = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingCategory(null);
-    setCategoryForm({ name: '', description: '' });
+    setCategoryForm({ name: "", description: "" });
   };
 
   const handleSaveCategory = async () => {
@@ -55,14 +70,14 @@ const CategoryPage = () => {
 
     let success = false;
     if (editingCategory) {
-      success = await updateCategory({ 
-        id: editingCategory.id, 
+      success = await updateCategory({
+        id: editingCategory.id,
         name: categoryForm.name,
-        description: categoryForm.description 
+        description: categoryForm.description,
       });
     } else {
-      const categoryId = await createCategory(categoryForm);
-      success = !!categoryId;
+      const category_id = await createCategory(categoryForm);
+      success = !!category_id;
     }
 
     if (success) {
@@ -72,7 +87,7 @@ const CategoryPage = () => {
   };
 
   const handleDeleteCategory = async (id) => {
-    if (!confirm('Are you sure you want to delete this category?')) {
+    if (!confirm("Are you sure you want to delete this category?")) {
       return;
     }
 
@@ -130,13 +145,22 @@ const CategoryPage = () => {
                 <table className="min-w-full divide-y divide-gray-300">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
+                      <th
+                        scope="col"
+                        className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
+                      >
                         Name
                       </th>
-                      <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">
+                      <th
+                        scope="col"
+                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                      >
                         Description
                       </th>
-                      <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                      <th
+                        scope="col"
+                        className="relative py-3.5 pl-3 pr-4 sm:pr-6"
+                      >
                         <span className="sr-only">Actions</span>
                       </th>
                     </tr>
@@ -148,7 +172,7 @@ const CategoryPage = () => {
                           {category.name}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {category.description || '-'}
+                          {category.description || "-"}
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                           <button
@@ -191,7 +215,10 @@ const CategoryPage = () => {
         <div className="fixed inset-0 z-10 overflow-y-auto">
           <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             {/* Modal backdrop */}
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={handleCloseModal}></div>
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              onClick={handleCloseModal}
+            ></div>
 
             {/* Modal panel */}
             <div className="relative transform overflow-hidden rounded-lg bg-white px-8 pb-8 pt-6 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
@@ -202,8 +229,18 @@ const CategoryPage = () => {
                   onClick={handleCloseModal}
                 >
                   <span className="sr-only">Close</span>
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="1.5"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -211,12 +248,15 @@ const CategoryPage = () => {
               <div className="sm:flex sm:items-start">
                 <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                   <h3 className="text-xl font-semibold leading-6 text-gray-900 mb-6">
-                    {editingCategory ? 'Edit Category' : 'Add New Category'}
+                    {editingCategory ? "Edit Category" : "Add New Category"}
                   </h3>
                   <div className="space-y-6">
                     {/* Name field */}
                     <div>
-                      <label htmlFor="name" className="block text-sm font-medium leading-6 text-gray-900">
+                      <label
+                        htmlFor="name"
+                        className="block text-sm font-medium leading-6 text-gray-900"
+                      >
                         Name
                       </label>
                       <div className="mt-2">
@@ -224,7 +264,12 @@ const CategoryPage = () => {
                           type="text"
                           id="name"
                           value={categoryForm.name}
-                          onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                          onChange={(e) =>
+                            setCategoryForm({
+                              ...categoryForm,
+                              name: e.target.value,
+                            })
+                          }
                           className="block w-full rounded-md border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                           placeholder="Enter category name"
                         />
@@ -233,7 +278,10 @@ const CategoryPage = () => {
 
                     {/* Description field */}
                     <div>
-                      <label htmlFor="description" className="block text-sm font-medium leading-6 text-gray-900">
+                      <label
+                        htmlFor="description"
+                        className="block text-sm font-medium leading-6 text-gray-900"
+                      >
                         Description
                       </label>
                       <div className="mt-2">
@@ -241,7 +289,12 @@ const CategoryPage = () => {
                           id="description"
                           rows={4}
                           value={categoryForm.description}
-                          onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                          onChange={(e) =>
+                            setCategoryForm({
+                              ...categoryForm,
+                              description: e.target.value,
+                            })
+                          }
                           className="block w-full rounded-md border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                           placeholder="Enter category description"
                         />
@@ -259,7 +312,11 @@ const CategoryPage = () => {
                   disabled={loading}
                   className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Saving...' : (editingCategory ? 'Save Changes' : 'Create Category')}
+                  {loading
+                    ? "Saving..."
+                    : editingCategory
+                    ? "Save Changes"
+                    : "Create Category"}
                 </button>
                 <button
                   type="button"
