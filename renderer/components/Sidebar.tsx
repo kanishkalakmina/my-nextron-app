@@ -12,6 +12,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CalculatorIcon,
+  CurrencyDollarIcon,
 } from "@heroicons/react/24/outline";
 
 const navigation = [
@@ -20,6 +21,7 @@ const navigation = [
   { name: "Categories", href: "/category", icon: TagIcon },
   { name: "Products", href: "/product", icon: CubeIcon },
   { name: "Open Orders", href: "/orders", icon: ShoppingCartIcon },
+  { name: "Transactions", href: "/transactions", icon: CurrencyDollarIcon },
   { name: "Reports", href: "/reports", icon: ChartBarIcon },
   { name: "Customers", href: "/customers", icon: UserGroupIcon },
   { name: "Settings", href: "/settings", icon: CogIcon },
