@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
-import fs from 'fs';
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,21 +10,23 @@ const __dirname = path.dirname(__filename);
 // In production, store it in the user's app data directory
 const isProd = process.env.NODE_ENV === "production";
 const dbPath = isProd
-  ? path.join(process.env.APPDATA, "my-nextron-app/db.sqlite")
-  : path.join(__dirname, "../../db.sqlite");
+  ? path.join(process.env.APPDATA, "my-nextron-app/db1.sqlite")
+  : path.join(__dirname, "../../db1.sqlite");
 
 // Ensure the database directory exists
 if (isProd) {
   const dbDir = path.dirname(dbPath);
   if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
+    fs.mkdirSync(dbDir, {
+      recursive: true,
+    });
   }
 }
 
 let db;
 try {
   db = new Database(dbPath);
-  
+
   // Initialize tables only if they don't exist
   db.exec(`
     -- Create categories table
@@ -72,10 +74,9 @@ try {
   `);
 
   // Enable foreign key support
-  db.exec('PRAGMA foreign_keys = ON;');
-  
+  db.exec("PRAGMA foreign_keys = ON;");
 } catch (error) {
-  console.error('Database initialization error:', error);
+  console.error("Database initialization error:", error);
   throw error;
 }
 
@@ -143,7 +144,9 @@ const productQueries = {
 
 // Orders CRUD
 const orderQueries = {
-  create: db.prepare("INSERT INTO orders (id, total_amount, status) VALUES (?, ?, ?)"),
+  create: db.prepare(
+    "INSERT INTO orders (id, total_amount, status) VALUES (?, ?, ?)"
+  ),
   createOrderItem: db.prepare(
     "INSERT INTO order_items (id, order_id, product_id, quantity, price) VALUES (?, ?, ?, ?, ?)"
   ),
