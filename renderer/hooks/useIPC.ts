@@ -8,22 +8,28 @@ declare global {
       createCategory: (data: {
         name: string;
         description?: string;
-      }) => Promise<{ success: boolean; id?: number; error?: string }>;
+      }) => Promise<{ success: boolean; id?: string; error?: string }>;
       getAllCategories: () => Promise<{
         success: boolean;
-        categories?: any[];
+        categories?: Array<{
+          id: string;
+          name: string;
+          description?: string;
+          created_at: string;
+          updated_at: string;
+        }>;
         error?: string;
       }>;
       getCategoryById: (
-        id: number
+        id: string
       ) => Promise<{ success: boolean; category?: any; error?: string }>;
       updateCategory: (data: {
-        id: number;
+        id: string;
         name: string;
         description?: string;
       }) => Promise<{ success: boolean; error?: string }>;
       deleteCategory: (
-        id: number
+        id: string
       ) => Promise<{ success: boolean; error?: string }>;
       searchCategories: (
         searchTerm: string
@@ -34,25 +40,25 @@ declare global {
         name: string;
         description?: string;
         price: number;
-        category_id?: number;
-      }) => Promise<{ success: boolean; id?: number; error?: string }>;
+        category_id?: string;
+      }) => Promise<{ success: boolean; id?: string; error?: string }>;
       getAllProducts: () => Promise<{
         success: boolean;
         products?: any[];
         error?: string;
       }>;
       getProductById: (
-        id: number
+        id: string
       ) => Promise<{ success: boolean; product?: any; error?: string }>;
       updateProduct: (data: {
-        id: number;
+        id: string;
         name: string;
         description?: string;
         price: number;
-        category_id?: number;
+        category_id?: string;
       }) => Promise<{ success: boolean; error?: string }>;
       deleteProduct: (
-        id: number
+        id: string
       ) => Promise<{ success: boolean; error?: string }>;
       searchProducts: (
         searchTerm: string
@@ -61,22 +67,22 @@ declare global {
       // Orders
       createOrder: (data: {
         items: Array<{
-          productId: number;
+          productId: string;
           quantity: number;
           price: number;
         }>;
         totalAmount: number;
-      }) => Promise<{ success: boolean; orderId?: number; error?: string }>;
+      }) => Promise<{ success: boolean; orderId?: string; error?: string }>;
       getAllOrders: () => Promise<{
         success: boolean;
         orders?: any[];
         error?: string;
       }>;
       getOrderById: (
-        id: number
+        id: string
       ) => Promise<{ success: boolean; order?: any; error?: string }>;
       updateOrderStatus: (data: {
-        id: number;
+        id: string;
         status: string;
       }) => Promise<{ success: boolean; error?: string }>;
       searchOrders: (
@@ -133,8 +139,22 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const getCategoryById = async (id: string) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getCategoryById(id);
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch category");
+        return null;
+      }
+      return result.category;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateCategory = async (data: {
-    id: number;
+    id: string;
     name: string;
     description?: string;
   }) => {
@@ -151,7 +171,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
-  const deleteCategory = async (id: number) => {
+  const deleteCategory = async (id: string) => {
     setLoading(true);
     try {
       const result = await window.electron.deleteCategory(id);
@@ -170,7 +190,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     name: string;
     description?: string;
     price: number;
-    category_id?: number;
+    category_id?: string;
   }) => {
     setLoading(true);
     try {
@@ -199,10 +219,58 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const getProductById = async (id: string) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getProductById(id);
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch product");
+        return null;
+      }
+      return result.product;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateProduct = async (data: {
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    category_id?: string;
+  }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.updateProduct(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to update product");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.deleteProduct(id);
+      if (!result.success) {
+        handleError(result.error || "Failed to delete product");
+        return null;
+      }
+      return result.success;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Orders
   const createOrder = async (data: {
     items: Array<{
-      productId: number;
+      productId: string;
       quantity: number;
       price: number;
     }>;
@@ -235,19 +303,56 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const getOrderById = async (id: string) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getOrderById(id);
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch order");
+        return null;
+      }
+      return result.order;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateOrderStatus = async (data: {
+    id: string;
+    status: string;
+  }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.updateOrderStatus(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to update order status");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
     // Categories
     createCategory,
     getAllCategories,
+    getCategoryById,
     updateCategory,
     deleteCategory,
     // Products
     createProduct,
     getAllProducts,
+    getProductById,
+    updateProduct,
+    deleteProduct,
     // Orders
     createOrder,
     getAllOrders,
+    getOrderById,
+    updateOrderStatus,
   };
 }

@@ -8,6 +8,8 @@ import {
 } from "@heroicons/react/24/outline";
 import Layout from "../components/Layout";
 import { useIPC } from "../hooks/useIPC";
+import toast from "react-hot-toast";
+import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 
 const CategoryPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -18,6 +20,8 @@ const CategoryPage = () => {
     name: "",
     description: "",
   });
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
 
   const {
     loading,
@@ -28,7 +32,11 @@ const CategoryPage = () => {
     deleteCategory,
   } = useIPC({
     onError: (error) => {
-      console.error("Error:", error);
+      if (error === "FOREIGN KEY constraint failed") {
+        toast.error("Category is already in use");
+      } else {
+        console.error("Error:", error);
+      }
     },
   });
 
@@ -83,17 +91,32 @@ const CategoryPage = () => {
     if (success) {
       handleCloseModal();
       loadCategories();
+      toast.success("Category created successfully");
     }
   };
 
-  const handleDeleteCategory = async (id) => {
-    if (!confirm("Are you sure you want to delete this category?")) {
-      return;
-    }
+  const handleDeleteClick = (id) => {
+    setCategoryToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
 
-    const success = await deleteCategory(id);
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
+    setCategoryToDelete(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!categoryToDelete) return;
+
+    const success = await deleteCategory(categoryToDelete);
     if (success) {
-      loadCategories();
+      toast.success("Category deleted successfully");
+      await loadCategories();
+      setIsDeleteModalOpen(false);
+      setCategoryToDelete(null);
+    } else {
+      setIsDeleteModalOpen(false);
+      setCategoryToDelete(null);
     }
   };
 
@@ -183,7 +206,7 @@ const CategoryPage = () => {
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDeleteCategory(category.id)}
+                            onClick={() => handleDeleteClick(category.id)}
                             className="inline-flex items-center text-red-600 hover:text-red-900"
                           >
                             <TrashIcon className="h-5 w-5 mr-1" />
@@ -287,7 +310,6 @@ const CategoryPage = () => {
                       <div className="mt-2">
                         <textarea
                           id="description"
-                          rows={4}
                           value={categoryForm.description}
                           onChange={(e) =>
                             setCategoryForm({
@@ -295,41 +317,45 @@ const CategoryPage = () => {
                               description: e.target.value,
                             })
                           }
+                          rows={3}
                           className="block w-full rounded-md border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                           placeholder="Enter category description"
                         />
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Action buttons */}
-              <div className="mt-8 sm:mt-8 sm:flex sm:flex-row-reverse gap-3">
-                <button
-                  type="button"
-                  onClick={handleSaveCategory}
-                  disabled={loading}
-                  className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading
-                    ? "Saving..."
-                    : editingCategory
-                    ? "Save Changes"
-                    : "Create Category"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-6 py-3 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
-                >
-                  Cancel
-                </button>
+                  <div className="mt-6 flex items-center justify-end gap-x-6">
+                    <button
+                      type="button"
+                      onClick={handleCloseModal}
+                      className="text-sm font-semibold leading-6 text-gray-900"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveCategory}
+                      className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                    >
+                      {editingCategory ? "Update" : "Create"}
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Delete Category"
+        itemName={categoryToDelete?.name || ""}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </Layout>
   );
 };

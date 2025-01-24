@@ -1,12 +1,19 @@
 import { categoryQueries, productQueries, orderQueries } from '../db/index.js';
 import { app } from 'electron';
+import crypto from 'crypto';
+
+// Function to generate UUID
+const generateUUID = () => {
+  return crypto.randomUUID();
+};
 
 // Categories handlers
 const categoryHandlers = {
   createCategory: async (event, { name, description }) => {
     try {
-      const result = categoryQueries.create.run(name, description);
-      return { success: true, id: result.lastInsertRowid };
+      const id = generateUUID();
+      const result = categoryQueries.create.run(id, name, description);
+      return { success: true, id };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -62,14 +69,16 @@ const categoryHandlers = {
 const productHandlers = {
   createProduct: async (event, { name, description, price, category_id }) => {
     try {
+      const id = generateUUID();
       const result = productQueries.create.run(
+        id,
         name, 
         description, 
         price, 
         category_id
       );
       
-      return { success: true, id: result.lastInsertRowid };
+      return { success: true, id };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -142,7 +151,8 @@ const productHandlers = {
 const orderHandlers = {
   createOrder: async (event, { items, totalAmount }) => {
     try {
-      const { lastInsertRowid: orderId } = orderQueries.create.run(totalAmount, 'pending');
+      const orderId = generateUUID();
+      const { lastInsertRowid } = orderQueries.create.run(totalAmount, 'pending');
       
       for (const item of items) {
         orderQueries.createOrderItem.run(

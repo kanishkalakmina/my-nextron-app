@@ -8,21 +8,24 @@ import {
 } from "@heroicons/react/24/outline";
 import Layout from "../components/Layout";
 import { useIPC } from "../hooks/useIPC";
-import { toast } from "react-hot-toast";
+import toast from "react-hot-toast";
+import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
   description: string;
   price: number;
-  category_id: number;
+  category_id: string;
   category_name: string;
 }
 
 interface Category {
-  id: number;
+  id: string;
   name: string;
-  description: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const ProductPage = () => {
@@ -31,6 +34,8 @@ const ProductPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const [productForm, setProductForm] = useState({
     name: "",
     description: "",
@@ -47,6 +52,7 @@ const ProductPage = () => {
     try {
       const result = await window.electron.getAllProducts();
       if (result.success) {
+        console.log('Products loaded:', result.products);  // Debug log
         setProducts(result.products);
       } else {
         toast.error("Failed to load products");
@@ -78,7 +84,7 @@ const ProductPage = () => {
         name: product.name,
         description: product.description || "",
         price: product.price,
-        category_id: product.category_id ? product.category_id.toString() : "",
+        category_id: product.category_id || "",
       });
     } else {
       setEditingProduct(null);
@@ -121,9 +127,7 @@ const ProductPage = () => {
         name: productForm.name.trim(),
         description: productForm.description.trim(),
         price: Number(productForm.price),
-        category_id: productForm.category_id
-          ? Number(productForm.category_id)
-          : undefined,
+        category_id: productForm.category_id,
       };
 
       let result;
@@ -143,7 +147,7 @@ const ProductPage = () => {
             : "Product created successfully"
         );
         handleCloseModal();
-        loadProducts(); // Refresh the list after save
+        loadProducts();
       } else {
         toast.error(result.error || "Operation failed");
       }
@@ -153,13 +157,18 @@ const ProductPage = () => {
     }
   };
 
-  const handleDeleteProduct = async (id: number) => {
-    if (confirm("Are you sure you want to delete this product?")) {
+  const handleDeleteClick = (product: Product) => {
+    setProductToDelete(product);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (productToDelete) {
       try {
-        const result = await window.electron.deleteProduct(id);
+        const result = await window.electron.deleteProduct(productToDelete.id);
         if (result.success) {
           toast.success("Product deleted successfully");
-          loadProducts(); // Refresh the list after deletion
+          loadProducts();
         } else {
           toast.error(result.error || "Failed to delete product");
         }
@@ -168,6 +177,13 @@ const ProductPage = () => {
         toast.error("Failed to delete product");
       }
     }
+    setIsDeleteModalOpen(false);
+    setProductToDelete(null);
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteModalOpen(false);
+    setProductToDelete(null);
   };
 
   const handleSearch = async () => {
@@ -289,7 +305,7 @@ const ProductPage = () => {
                             Edit
                           </button>
                           <button
-                            onClick={() => handleDeleteProduct(product.id)}
+                            onClick={() => handleDeleteClick(product)}
                             className="inline-flex items-center text-red-600 hover:text-red-900"
                           >
                             <TrashIcon className="h-5 w-5 mr-1" />
@@ -446,7 +462,6 @@ const ProductPage = () => {
                     <div className="mt-2">
                       <select
                         id="category"
-                        required
                         value={productForm.category_id}
                         onChange={(e) =>
                           setProductForm({
@@ -454,7 +469,7 @@ const ProductPage = () => {
                             category_id: e.target.value,
                           })
                         }
-                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                        className="block w-full rounded-md border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
                       >
                         <option value="">Select a category</option>
                         {categories.map((category) => (
@@ -487,6 +502,14 @@ const ProductPage = () => {
           </div>
         </div>
       )}
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        title="Delete Product"
+        itemName={productToDelete?.name || ""}
+        onConfirm={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
+      />
     </Layout>
   );
 };

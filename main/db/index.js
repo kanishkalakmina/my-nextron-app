@@ -29,7 +29,7 @@ try {
   db.exec(`
     -- Create categories table
     CREATE TABLE IF NOT EXISTS categories (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -38,11 +38,11 @@ try {
 
     -- Create products table
     CREATE TABLE IF NOT EXISTS products (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
       description TEXT,
       price REAL NOT NULL,
-      category_id INTEGER,
+      category_id TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (category_id) REFERENCES categories(id)
@@ -50,7 +50,7 @@ try {
 
     -- Create orders table
     CREATE TABLE IF NOT EXISTS orders (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id TEXT PRIMARY KEY,
       total_amount REAL NOT NULL,
       status TEXT DEFAULT 'pending',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -59,9 +59,9 @@ try {
 
     -- Create order_items table
     CREATE TABLE IF NOT EXISTS order_items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      order_id INTEGER NOT NULL,
-      product_id INTEGER NOT NULL,
+      id TEXT PRIMARY KEY,
+      order_id TEXT NOT NULL,
+      product_id TEXT NOT NULL,
       quantity INTEGER NOT NULL,
       price REAL NOT NULL,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -82,7 +82,7 @@ try {
 // Categories CRUD
 const categoryQueries = {
   create: db.prepare(
-    "INSERT INTO categories (name, description) VALUES (?, ?)"
+    "INSERT INTO categories (id, name, description) VALUES (?, ?, ?)"
   ),
   getAll: db.prepare("SELECT * FROM categories ORDER BY created_at DESC"),
   getById: db.prepare("SELECT * FROM categories WHERE id = ?"),
@@ -98,13 +98,14 @@ const categoryQueries = {
 // Products CRUD
 const productQueries = {
   create: db.prepare(`
-    INSERT INTO products (name, description, price, category_id) 
-    VALUES (?, ?, ?, ?)
+    INSERT INTO products (id, name, description, price, category_id) 
+    VALUES (?, ?, ?, ?, ?)
   `),
   getAll: db.prepare(`
     SELECT 
       p.*,
-      c.name as category_name
+      c.name as category_name,
+      c.id as category_id
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id 
     ORDER BY p.created_at DESC
@@ -112,38 +113,39 @@ const productQueries = {
   getById: db.prepare(`
     SELECT 
       p.*,
-      c.name as category_name
+      c.name as category_name,
+      c.id as category_id
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id 
     WHERE p.id = ?
   `),
   update: db.prepare(`
     UPDATE products 
-    SET 
-      name = ?, 
-      description = ?, 
-      price = ?, 
-      category_id = ?,
-      updated_at = CURRENT_TIMESTAMP 
+    SET name = ?, 
+        description = ?, 
+        price = ?, 
+        category_id = ?,
+        updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `),
   delete: db.prepare("DELETE FROM products WHERE id = ?"),
   search: db.prepare(`
     SELECT 
       p.*,
-      c.name as category_name
+      c.name as category_name,
+      c.id as category_id
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id 
-    WHERE p.name LIKE ?
+    WHERE p.name LIKE ? OR p.description LIKE ?
     ORDER BY p.created_at DESC
   `),
 };
 
 // Orders CRUD
 const orderQueries = {
-  create: db.prepare("INSERT INTO orders (total_amount, status) VALUES (?, ?)"),
+  create: db.prepare("INSERT INTO orders (id, total_amount, status) VALUES (?, ?, ?)"),
   createOrderItem: db.prepare(
-    "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)"
+    "INSERT INTO order_items (id, order_id, product_id, quantity, price) VALUES (?, ?, ?, ?, ?)"
   ),
   getAll: db.prepare(`
     SELECT 
