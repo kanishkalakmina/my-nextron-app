@@ -273,7 +273,7 @@ function HomePage() {
                   
                   <div className="flex justify-between border-t border-gray-200 pt-2 text-lg font-bold text-gray-900">
                     <span>Total:</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>Rs.{total.toFixed(2)}</span>
                   </div>
                 </div>
 

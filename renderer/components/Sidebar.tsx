@@ -15,6 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 const navigation = [
+  { name: "Overview", href: "/dashboard", icon: ChartBarIcon },
   { name: "Point of Sale", href: "/home", icon: CalculatorIcon },
   { name: "Orders", href: "/orders", icon: ShoppingCartIcon },
   { name: "Products", href: "/product", icon: CubeIcon },
