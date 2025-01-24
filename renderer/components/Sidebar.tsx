@@ -15,11 +15,11 @@ import {
 } from "@heroicons/react/24/outline";
 
 const navigation = [
-  { name: "Overview", href: "/dashboard", icon: ChartBarIcon },
-  { name: "Point of Sale", href: "/home", icon: CalculatorIcon },
-  { name: "Orders", href: "/orders", icon: ShoppingCartIcon },
-  { name: "Products", href: "/product", icon: CubeIcon },
+  { name: "Overview", href: "/dashboard", icon: CalculatorIcon },
+  { name: "Point of Sale", href: "/home", icon: CalculatorIcon }, 
   { name: "Categories", href: "/category", icon: TagIcon },
+  { name: "Products", href: "/product", icon: CubeIcon },
+  { name: "Open Orders", href: "/orders", icon: ShoppingCartIcon },
   { name: "Reports", href: "/reports", icon: ChartBarIcon },
   { name: "Customers", href: "/customers", icon: UserGroupIcon },
   { name: "Settings", href: "/settings", icon: CogIcon },
@@ -63,7 +63,9 @@ export default function Sidebar() {
     >
       <div className="flex h-16 flex-shrink-0 items-center justify-between border-b px-4">
         {!isCollapsed && (
-          <h1 className="text-xl font-bold text-gray-900">POS System</h1>
+          <h1 className="text-2xl font-bold text-blue-500" style={{ fontFamily: "'Dancing Script', cursive" }}>
+            𝓑𝓲𝓼𝓽𝓻𝓸
+          </h1>
         )}
         {!isMobile && (
           <button

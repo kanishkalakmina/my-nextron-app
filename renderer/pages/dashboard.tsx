@@ -10,6 +10,7 @@ import {
   MinusIcon
 } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
+import { useRouter } from 'next/router';
 
 interface OrderItem {
   id: string;
@@ -19,6 +20,7 @@ interface OrderItem {
 }
 
 const DashboardPage = () => {
+  const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [categories, setCategories] = useState([
     { id: "all", name: "All" },
@@ -26,7 +28,9 @@ const DashboardPage = () => {
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [discountValue, setDiscountValue] = useState("0");
   const [activeCategory, setActiveCategory] = useState("all");
-  
+  const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
+  const [holdReference, setHoldReference] = useState('');
+
   // Sample products (replace with your actual products data)
   const products = [
     { id: '1', name: 'Berry Mojito', price: 120.00 },
@@ -69,6 +73,30 @@ const DashboardPage = () => {
 
   const removeItem = (itemId: string) => {
     setOrderItems(prevItems => prevItems.filter(item => item.id !== itemId));
+  };
+
+  const handleHoldOrder = () => {
+    setIsHoldModalOpen(true);
+  };
+
+  const handleCloseHoldModal = () => {
+    setIsHoldModalOpen(false);
+    setHoldReference('');
+  };
+
+  const handleNumberClick = (num: string) => {
+    setHoldReference(prev => prev + num);
+  };
+
+  const handleACClick = () => {
+    setHoldReference('');
+  };
+
+  const handleHoldOrderSubmit = () => {
+    // Here you would save the order with the reference
+    handleCloseHoldModal();
+    // Navigate to orders page
+    router.push('/orders');
   };
 
   // Calculate totals
@@ -247,7 +275,10 @@ const DashboardPage = () => {
                   </svg>
                   Pay
                 </button>
-                <button className="flex items-center justify-center gap-2 bg-[#26A69A] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity">
+                <button 
+                  className="flex items-center justify-center gap-2 bg-[#26A69A] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity"
+                  onClick={handleHoldOrder}
+                >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
                     <rect x="7" y="5" width="3" height="14" fill="white" rx="0.5"/>
                     <rect x="14" y="5" width="3" height="14" fill="white" rx="0.5"/>
@@ -256,7 +287,7 @@ const DashboardPage = () => {
                 </button>
                 <button className="flex items-center justify-center gap-2 bg-[#F44336] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <path d="M6 6l12 12M6 18L18 6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M6 18L18 6M6 6l12 12" stroke="white" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
                   Cancel
                 </button>
@@ -281,6 +312,49 @@ const DashboardPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Hold Order Modal */}
+      {isHoldModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 w-[400px]">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl text-gray-700">Hold Order</h2>
+              <button onClick={handleCloseHoldModal} className="text-gray-400 hover:text-gray-600">
+                ×
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <input
+                type="text"
+                placeholder="Enter a reference"
+                className="w-full p-3 border border-blue-300 rounded text-lg"
+                value={holdReference}
+                onChange={(e) => setHoldReference(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, '∞', 0, 'AC'].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => num === 'AC' ? handleACClick() : handleNumberClick(num.toString())}
+                  className="py-4 text-center border border-blue-200 rounded text-blue-500 hover:bg-blue-50 transition-colors text-lg"
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={handleHoldOrderSubmit}
+              className="w-full mt-6 bg-blue-500 text-white py-4 rounded text-lg font-medium hover:bg-blue-600 transition-colors uppercase"
+            >
+              Hold Order
+            </button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
