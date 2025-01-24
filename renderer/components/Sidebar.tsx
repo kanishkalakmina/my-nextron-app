@@ -17,7 +17,7 @@ import {
 const navigation = [
   { name: "Point of Sale", href: "/home", icon: CalculatorIcon },
   { name: "Orders", href: "/orders", icon: ShoppingCartIcon },
-  { name: "Products", href: "/products", icon: CubeIcon },
+  { name: "Products", href: "/product", icon: CubeIcon },
   { name: "Categories", href: "/category", icon: TagIcon },
   { name: "Reports", href: "/reports", icon: ChartBarIcon },
   { name: "Customers", href: "/customers", icon: UserGroupIcon },

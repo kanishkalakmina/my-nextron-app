@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { PlusIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, MagnifyingGlassIcon, PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
 import { useIPC } from '../hooks/useIPC';
 
 const CategoryPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categories, setCategories] = useState([]);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newCategory, setNewCategory] = useState({ name: '', description: '' });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryForm, setCategoryForm] = useState({ name: '', description: '' });
   
-  const { loading, error, getAllCategories, createCategory } = useIPC({
+  const { loading, error, getAllCategories, createCategory, updateCategory, deleteCategory } = useIPC({
     onError: (error) => {
       console.error('Error:', error);
-      // You might want to show an error toast here
     }
   });
 
@@ -28,18 +28,63 @@ const CategoryPage = () => {
     }
   };
 
-  const handleCreateCategory = async () => {
-    if (!newCategory.name.trim()) {
+  const handleOpenModal = (category = null) => {
+    if (category) {
+      setEditingCategory(category);
+      setCategoryForm({ 
+        name: category.name || '', 
+        description: category.description || '' 
+      });
+    } else {
+      setEditingCategory(null);
+      setCategoryForm({ name: '', description: '' });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setEditingCategory(null);
+    setCategoryForm({ name: '', description: '' });
+  };
+
+  const handleSaveCategory = async () => {
+    if (!categoryForm.name.trim()) {
       return;
     }
 
-    const categoryId = await createCategory(newCategory);
-    if (categoryId) {
-      setIsAddModalOpen(false);
-      setNewCategory({ name: '', description: '' });
+    let success = false;
+    if (editingCategory) {
+      success = await updateCategory({ 
+        id: editingCategory.id, 
+        name: categoryForm.name,
+        description: categoryForm.description 
+      });
+    } else {
+      const categoryId = await createCategory(categoryForm);
+      success = !!categoryId;
+    }
+
+    if (success) {
+      handleCloseModal();
       loadCategories();
     }
   };
+
+  const handleDeleteCategory = async (id) => {
+    if (!confirm('Are you sure you want to delete this category?')) {
+      return;
+    }
+
+    const success = await deleteCategory(id);
+    if (success) {
+      loadCategories();
+    }
+  };
+
+  const filteredCategories = categories.filter((category) =>
+    category.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <Layout>
@@ -53,8 +98,8 @@ const CategoryPage = () => {
           <h1 className="text-2xl font-semibold text-gray-900">Categories</h1>
           <button
             type="button"
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+            onClick={() => handleOpenModal()}
+            className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
           >
             <PlusIcon className="h-5 w-5 mr-2" />
             Add Category
@@ -97,24 +142,42 @@ const CategoryPage = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {categories.map((category: any) => (
+                    {filteredCategories.map((category) => (
                       <tr key={category.id}>
                         <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
                           {category.name}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {category.description}
+                          {category.description || '-'}
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-                          <button className="text-indigo-600 hover:text-indigo-900 mr-4">
+                          <button
+                            onClick={() => handleOpenModal(category)}
+                            className="inline-flex items-center text-indigo-600 hover:text-indigo-900 mr-4"
+                          >
+                            <PencilSquareIcon className="h-5 w-5 mr-1" />
                             Edit
                           </button>
-                          <button className="text-red-600 hover:text-red-900">
+                          <button
+                            onClick={() => handleDeleteCategory(category.id)}
+                            className="inline-flex items-center text-red-600 hover:text-red-900"
+                          >
+                            <TrashIcon className="h-5 w-5 mr-1" />
                             Delete
                           </button>
                         </td>
                       </tr>
                     ))}
+                    {filteredCategories.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 text-center"
+                        >
+                          No categories found
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -123,53 +186,85 @@ const CategoryPage = () => {
         </div>
       </main>
 
-      {/* Add Category Modal */}
-      {isAddModalOpen && (
+      {/* Category Modal (Add/Edit) */}
+      {isModalOpen && (
         <div className="fixed inset-0 z-10 overflow-y-auto">
           <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-              <div>
-                <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">Add New Category</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                      Name
-                    </label>
-                    <input
-                      type="text"
-                      id="name"
-                      value={newCategory.name}
-                      onChange={(e) => setNewCategory({ ...newCategory, name: e.target.value })}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                      Description
-                    </label>
-                    <textarea
-                      id="description"
-                      value={newCategory.description}
-                      onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                      rows={3}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    />
+            {/* Modal backdrop */}
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={handleCloseModal}></div>
+
+            {/* Modal panel */}
+            <div className="relative transform overflow-hidden rounded-lg bg-white px-8 pb-8 pt-6 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+              <div className="absolute right-0 top-0 pr-4 pt-4">
+                <button
+                  type="button"
+                  className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
+                  onClick={handleCloseModal}
+                >
+                  <span className="sr-only">Close</span>
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                  <h3 className="text-xl font-semibold leading-6 text-gray-900 mb-6">
+                    {editingCategory ? 'Edit Category' : 'Add New Category'}
+                  </h3>
+                  <div className="space-y-6">
+                    {/* Name field */}
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium leading-6 text-gray-900">
+                        Name
+                      </label>
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          id="name"
+                          value={categoryForm.name}
+                          onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                          className="block w-full rounded-md border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                          placeholder="Enter category name"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Description field */}
+                    <div>
+                      <label htmlFor="description" className="block text-sm font-medium leading-6 text-gray-900">
+                        Description
+                      </label>
+                      <div className="mt-2">
+                        <textarea
+                          id="description"
+                          rows={4}
+                          value={categoryForm.description}
+                          onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                          className="block w-full rounded-md border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                          placeholder="Enter category description"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-              <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
+
+              {/* Action buttons */}
+              <div className="mt-8 sm:mt-8 sm:flex sm:flex-row-reverse gap-3">
                 <button
                   type="button"
-                  onClick={handleCreateCategory}
+                  onClick={handleSaveCategory}
                   disabled={loading}
-                  className="inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:col-start-2 sm:text-sm"
+                  className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {loading ? 'Creating...' : 'Create'}
+                  {loading ? 'Saving...' : (editingCategory ? 'Save Changes' : 'Create Category')}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:col-start-1 sm:mt-0 sm:text-sm"
+                  onClick={handleCloseModal}
+                  className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-6 py-3 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
                 >
                   Cancel
                 </button>

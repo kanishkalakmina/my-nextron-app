@@ -94,6 +94,34 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const updateCategory = async (data: { id: number; name: string; description?: string }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.updateCategory(data);
+      if (!result.success) {
+        handleError(result.error || 'Failed to update category');
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteCategory = async (id: number) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.deleteCategory(id);
+      if (!result.success) {
+        handleError(result.error || 'Failed to delete category');
+        return null;
+      }
+      return result.success;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Products
   const createProduct = async (data: {
     name: string;
@@ -171,6 +199,8 @@ export function useIPC(options: UseIPCOptions = {}) {
     // Categories
     createCategory,
     getAllCategories,
+    updateCategory,
+    deleteCategory,
     // Products
     createProduct,
     getAllProducts,
