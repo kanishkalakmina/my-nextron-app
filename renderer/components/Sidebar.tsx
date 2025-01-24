@@ -16,14 +16,12 @@ import {
 } from "@heroicons/react/24/outline";
 
 const navigation = [
-  { name: "Overview", href: "/dashboard", icon: CalculatorIcon },
-  { name: "Point of Sale", href: "/home", icon: CalculatorIcon }, 
+  { name: "Point of Sale", href: "/dashboard", icon: CalculatorIcon },
   { name: "Categories", href: "/category", icon: TagIcon },
   { name: "Products", href: "/product", icon: CubeIcon },
   { name: "Open Orders", href: "/orders", icon: ShoppingCartIcon },
   { name: "Transactions", href: "/transactions", icon: CurrencyDollarIcon },
   { name: "Reports", href: "/reports", icon: ChartBarIcon },
-  { name: "Customers", href: "/customers", icon: UserGroupIcon },
   { name: "Settings", href: "/settings", icon: CogIcon },
 ];
 
