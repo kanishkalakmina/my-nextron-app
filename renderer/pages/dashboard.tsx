@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
 import { useRouter } from 'next/router';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface OrderItem {
   id: string;
@@ -45,6 +46,7 @@ const DashboardPage = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [holdReference, setHoldReference] = useState('');
+  const [recalledOrderId, setRecalledOrderId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -80,12 +82,17 @@ const DashboardPage = () => {
 
   // Handle recalled order
   useEffect(() => {
-    // Handle recalled order if present in URL query
-    const { recalledOrder } = router.query;
+    const { recalledOrder, orderId, reference } = router.query;
     if (recalledOrder && typeof recalledOrder === 'string') {
       try {
         const items = JSON.parse(recalledOrder);
         setOrderItems(items);
+        if (orderId && typeof orderId === 'string') {
+          setRecalledOrderId(orderId);
+        }
+        if (reference && typeof reference === 'string') {
+          setHoldReference(reference);
+        }
         // Remove the query parameter after loading
         router.replace('/dashboard', undefined, { shallow: true });
       } catch (error) {
@@ -176,20 +183,46 @@ const DashboardPage = () => {
       return;
     }
 
-    const result = await window.electron.createHoldOrder({
+    // Check if reference exists (only for new orders)
+    if (!recalledOrderId) {
+      const checkResult = await window.electron.checkReference(holdReference);
+      if (checkResult.success && checkResult.exists) {
+        toast.error('Reference Number already Exists!!!', {
+          duration: 3000,
+          position: 'top-center',
+          style: {
+            background: '#FF4B4B',
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: '16px',
+            padding: '16px',
+            borderRadius: '8px',
+          },
+        });
+        return;
+      }
+    }
+
+    const orderData = {
       reference: holdReference,
       items: orderItems,
       total_items: orderItems.reduce((sum, item) => sum + item.quantity, 0),
       total_amount: total
-    });
+    };
+
+    // If this is a recalled order, update it instead of creating new
+    const result = recalledOrderId 
+      ? await window.electron.updateHoldOrder({ id: recalledOrderId, ...orderData })
+      : await window.electron.createHoldOrder(orderData);
 
     if (result.success) {
       setOrderItems([]);
       setHoldReference('');
+      setRecalledOrderId(null);
       setIsHoldModalOpen(false);
       router.push('/orders');
     } else {
-      alert('Failed to hold order: ' + result.error);
+      toast.error('Failed to hold order: ' + result.error);
     }
   };
 
@@ -208,6 +241,7 @@ const DashboardPage = () => {
       <Head>
         <title>Point of Sale</title>
       </Head>
+      <Toaster />
       
       <div className="flex h-screen overflow-hidden">
         {/* Left Side - Products Section */}
@@ -452,9 +486,12 @@ const DashboardPage = () => {
               <input
                 type="text"
                 placeholder="Enter a reference"
-                className="w-full p-3 border border-blue-300 rounded text-lg"
+                className={`w-full p-3 border border-blue-300 rounded text-lg ${
+                  recalledOrderId ? 'bg-gray-100 cursor-not-allowed' : ''
+                }`}
                 value={holdReference}
                 onChange={(e) => setHoldReference(e.target.value)}
+                readOnly={recalledOrderId !== null}
               />
             </div>
 

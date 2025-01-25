@@ -53,7 +53,9 @@ const registerIpcHandlers = () => {
   ipcMain.handle("search-orders", orderHandlers.searchOrders);
 
   // Hold Orders
+  ipcMain.handle("check-reference", holdOrderHandlers.checkReference);
   ipcMain.handle("create-hold-order", holdOrderHandlers.createHoldOrder);
+  ipcMain.handle("update-hold-order", holdOrderHandlers.updateHoldOrder);
   ipcMain.handle("get-all-hold-orders", holdOrderHandlers.getAllHoldOrders);
   ipcMain.handle("delete-hold-order", holdOrderHandlers.deleteHoldOrder);
 };

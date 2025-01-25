@@ -313,6 +313,16 @@ const orderHandlers = {
 
 // Hold Orders handlers
 const holdOrderHandlers = {
+  checkReference: async (event, { reference }) => {
+    try {
+      const result = holdOrderQueries.checkReference.get(reference);
+      return { success: true, exists: result.count > 0 };
+    } catch (error) {
+      console.error('Error checking reference:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
   createHoldOrder: async (event, { reference, items, total_items, total_amount }) => {
     try {
       const id = generateUUID();
@@ -326,6 +336,22 @@ const holdOrderHandlers = {
       return { success: true, id };
     } catch (error) {
       console.error('Error creating held order:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  updateHoldOrder: async (event, { id, reference, items, total_items, total_amount }) => {
+    try {
+      holdOrderQueries.update.run(
+        reference,
+        JSON.stringify(items),
+        total_items,
+        total_amount,
+        id
+      );
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating held order:', error);
       return { success: false, error: error.message };
     }
   },

@@ -217,9 +217,15 @@ const holdOrderQueries = {
     INSERT INTO hold_orders (id, reference, items, total_items, total_amount)
     VALUES (?, ?, ?, ?, ?)
   `),
+  update: db.prepare(`
+    UPDATE hold_orders 
+    SET reference = ?, items = ?, total_items = ?, total_amount = ?
+    WHERE id = ?
+  `),
   getAll: db.prepare('SELECT * FROM hold_orders ORDER BY created_at DESC'),
   getById: db.prepare('SELECT * FROM hold_orders WHERE id = ?'),
-  delete: db.prepare('DELETE FROM hold_orders WHERE id = ?')
+  delete: db.prepare('DELETE FROM hold_orders WHERE id = ?'),
+  checkReference: db.prepare('SELECT COUNT(*) as count FROM hold_orders WHERE reference = ?')
 };
 
 export { 

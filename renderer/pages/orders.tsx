@@ -37,17 +37,15 @@ export default function OrdersPage() {
   };
 
   const handleRecallOrder = async (order: HoldOrder) => {
-    // Delete the held order since it's being recalled
-    const deleteResult = await window.electron.deleteHoldOrder(order.id);
-    if (deleteResult.success) {
-      // Redirect to dashboard with the order items
-      router.push({
-        pathname: '/dashboard',
-        query: { recalledOrder: JSON.stringify(order.items) }
-      });
-    } else {
-      alert('Failed to recall order. Please try again.');
-    }
+    // Pass the order ID and reference along with the items
+    router.push({
+      pathname: '/dashboard',
+      query: { 
+        recalledOrder: JSON.stringify(order.items),
+        orderId: order.id,
+        reference: order.reference
+      }
+    });
   };
 
   const filteredOrders = holdOrders.filter(order => 
@@ -105,28 +103,12 @@ export default function OrdersPage() {
                   </div>
                 </div>
 
-                <div className="border-t border-gray-200 pt-4">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Items:</h3>
-                  <div className="space-y-2">
-                    {order.items.map((item, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span className="text-gray-600">
-                          {item.name} x{item.quantity}
-                        </span>
-                        <span className="text-gray-800">
-                          Rs. {(item.price * item.quantity).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Prevent card click event
+                    e.stopPropagation();
                     handleRecallOrder(order);
                   }}
-                  className="w-full mt-6 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200"
+                  className="w-full mt-4 bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors duration-200"
                 >
                   Recall Order
                 </button>

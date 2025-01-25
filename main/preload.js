@@ -154,9 +154,25 @@ contextBridge.exposeInMainWorld('electron', {
   },
 
   // Hold Orders
+  checkReference: async (reference) => {
+    try {
+      return await ipcRenderer.invoke('check-reference', { reference });
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
   createHoldOrder: async (data) => {
     try {
       return await ipcRenderer.invoke('create-hold-order', data);
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+  updateHoldOrder: async (data) => {
+    try {
+      return await ipcRenderer.invoke('update-hold-order', data);
     } catch (error) {
       console.error('IPC Error:', error);
       return { success: false, error: error.message };
