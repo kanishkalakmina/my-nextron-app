@@ -133,7 +133,10 @@ const CategoryPage = () => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredCategories.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredCategories.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -160,6 +163,7 @@ const CategoryPage = () => {
         </div>
 
         {/* Search */}
+        {/* TODO
         <div className="mb-6">
           <div className="relative">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -173,7 +177,7 @@ const CategoryPage = () => {
               placeholder="Search categories..."
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Categories Table */}
         <div className="mt-8 flow-root">
@@ -277,7 +281,8 @@ const CategoryPage = () => {
             <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-700">
-                  Showing <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
+                  Showing{" "}
+                  <span className="font-medium">{indexOfFirstItem + 1}</span> to{" "}
                   <span className="font-medium">
                     {Math.min(indexOfLastItem, totalItems)}
                   </span>{" "}
