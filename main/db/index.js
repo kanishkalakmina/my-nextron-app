@@ -45,6 +45,7 @@ try {
       description TEXT,
       price REAL NOT NULL,
       category_id TEXT,
+      image_path TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (category_id) REFERENCES categories(id)
@@ -99,8 +100,8 @@ const categoryQueries = {
 // Products CRUD
 const productQueries = {
   create: db.prepare(`
-    INSERT INTO products (id, name, description, price, category_id) 
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, description, price, category_id, image_path) 
+    VALUES (?, ?, ?, ?, ?, ?)
   `),
   getAll: db.prepare(`
     SELECT 
@@ -126,6 +127,7 @@ const productQueries = {
         description = ?, 
         price = ?, 
         category_id = ?,
+        image_path = ?,
         updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `),

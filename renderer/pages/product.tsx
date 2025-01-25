@@ -18,6 +18,7 @@ interface Product {
   price: number;
   category_id: string;
   category_name: string;
+  image_path?: string;
 }
 
 interface Category {
@@ -28,6 +29,15 @@ interface Category {
   updated_at: string;
 }
 
+interface ProductForm {
+  name: string;
+  description: string;
+  price: number;
+  category_id: string;
+  image: File | null;
+  existingImagePath: string | null;
+}
+
 const ProductPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -36,11 +46,13 @@ const ProductPage = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [productForm, setProductForm] = useState({
+  const [productForm, setProductForm] = useState<ProductForm>({
     name: "",
     description: "",
     price: 0,
     category_id: "",
+    image: null,
+    existingImagePath: null,
   });
 
   useEffect(() => {
@@ -52,7 +64,7 @@ const ProductPage = () => {
     try {
       const result = await window.electron.getAllProducts();
       if (result.success) {
-        console.log('Products loaded:', result.products);  // Debug log
+        console.log("Products loaded:", result.products); // Debug log
         setProducts(result.products);
       } else {
         toast.error("Failed to load products");
@@ -85,6 +97,8 @@ const ProductPage = () => {
         description: product.description || "",
         price: product.price,
         category_id: product.category_id || "",
+        image: null,
+        existingImagePath: product.image_path,
       });
     } else {
       setEditingProduct(null);
@@ -93,6 +107,8 @@ const ProductPage = () => {
         description: "",
         price: 0,
         category_id: "",
+        image: null,
+        existingImagePath: null,
       });
     }
     setIsModalOpen(true);
@@ -106,55 +122,120 @@ const ProductPage = () => {
       description: "",
       price: 0,
       category_id: "",
+      image: null,
+      existingImagePath: null,
     });
   };
 
-  const handleSaveProduct = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!productForm.name.trim()) {
-      toast.error("Product name is required");
-      return;
-    }
-
-    if (!productForm.category_id) {
-      toast.error("Please select a category");
-      return;
-    }
-
     try {
+      let imagePath = productForm.existingImagePath;
+
+      if (productForm.image) {
+        try {
+          // Convert File to ArrayBuffer for IPC transfer
+          const arrayBuffer = await productForm.image.arrayBuffer();
+          const fileData = {
+            name: productForm.image.name,
+            type: productForm.image.type,
+            data: Array.from(new Uint8Array(arrayBuffer)),
+          };
+          console.log("Uploading image:", {
+            name: fileData.name,
+            type: fileData.type,
+          });
+          const uploadResult = await window.electron.uploadImage(fileData);
+          console.log("Upload result:", uploadResult);
+
+          if (!uploadResult.success) {
+            toast.error("Failed to upload image");
+            return;
+          }
+          imagePath = uploadResult.filePath;
+        } catch (error) {
+          console.error("Error in image upload:", error);
+          toast.error(`Error uploading image: ${error.message}`);
+          return;
+        }
+      }
+
       const productData = {
-        name: productForm.name.trim(),
-        description: productForm.description.trim(),
-        price: Number(productForm.price),
+        name: productForm.name,
+        description: productForm.description,
+        price: productForm.price,
         category_id: productForm.category_id,
+        image_path: imagePath,
       };
 
-      let result;
+      console.log("Submitting product data:", {
+        ...productData,
+        isEdit: !!editingProduct,
+        editId: editingProduct?.id,
+      });
+
       if (editingProduct) {
-        result = await window.electron.updateProduct({
+        const result = await window.electron.updateProduct({
           id: editingProduct.id,
           ...productData,
         });
-      } else {
-        result = await window.electron.createProduct(productData);
-      }
+        console.log("Update result:", result);
 
-      if (result.success) {
-        toast.success(
-          editingProduct
-            ? "Product updated successfully"
-            : "Product created successfully"
-        );
-        handleCloseModal();
-        loadProducts();
+        if (result.success) {
+          toast.success("Product updated successfully");
+          loadProducts();
+          handleCloseModal();
+        } else {
+          console.error("Update failed:", result.error);
+          toast.error(result.error || "Failed to update product");
+        }
       } else {
-        toast.error(result.error || "Operation failed");
+        const result = await window.electron.createProduct(productData);
+        console.log("Create result:", result);
+
+        if (result.success) {
+          toast.success("Product created successfully");
+          loadProducts();
+          handleCloseModal();
+        } else {
+          console.error("Create failed:", result.error);
+          toast.error(result.error || "Failed to create product");
+        }
       }
     } catch (error) {
-      console.error("Error saving product:", error);
+      console.error("Error in form submission:", error);
       toast.error("An error occurred while saving the product");
     }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    
+    // Clear the input value to allow selecting the same file again
+    e.target.value = '';
+    
+    if (!file) {
+      return;
+    }
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Please select a valid image file (JPG, PNG, or GIF)');
+      return;
+    }
+
+    // Validate file size (5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    setProductForm(prev => ({
+      ...prev,
+      image: file
+    }));
   };
 
   const handleDeleteClick = (product: Product) => {
@@ -334,20 +415,21 @@ const ProductPage = () => {
 
       {/* Product Modal (Add/Edit) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-            {/* Modal backdrop */}
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            {/* Modal backdrop with blur effect */}
             <div
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 backdrop-blur-sm transition-opacity"
               onClick={handleCloseModal}
             ></div>
 
-            {/* Modal panel */}
-            <div className="relative transform overflow-hidden rounded-lg bg-white px-8 pb-8 pt-6 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+            {/* Modal panel with improved styling */}
+            <div className="relative transform overflow-hidden rounded-xl bg-white px-8 pb-8 pt-6 text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+              {/* Close button with hover effect */}
               <div className="absolute right-0 top-0 pr-4 pt-4">
                 <button
                   type="button"
-                  className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
+                  className="rounded-full p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-500 focus:outline-none transition-colors duration-200"
                   onClick={handleCloseModal}
                 >
                   <span className="sr-only">Close</span>
@@ -355,7 +437,7 @@ const ProductPage = () => {
                     className="h-6 w-6"
                     fill="none"
                     viewBox="0 0 24 24"
-                    strokeWidth="1.5"
+                    strokeWidth="2"
                     stroke="currentColor"
                   >
                     <path
@@ -367,135 +449,211 @@ const ProductPage = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveProduct}>
+              <form onSubmit={handleSubmit} className="mt-4">
                 <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-medium leading-6 text-gray-900">
+                  <div className="border-b border-gray-200 pb-4">
+                    <h3 className="text-xl font-semibold leading-6 text-gray-900">
                       {editingProduct ? "Edit Product" : "Add New Product"}
                     </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {editingProduct
+                        ? "Update the product information below"
+                        : "Fill in the information below to create a new product"}
+                    </p>
                   </div>
 
-                  {/* Name field */}
-                  <div>
-                    <label
-                      htmlFor="name"
-                      className="block text-sm font-medium leading-6 text-gray-900"
-                    >
-                      Name
-                    </label>
-                    <div className="mt-2">
-                      <input
-                        type="text"
-                        id="name"
-                        required
-                        value={productForm.name}
-                        onChange={(e) =>
-                          setProductForm({
-                            ...productForm,
-                            name: e.target.value,
-                          })
-                        }
-                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Description field */}
-                  <div>
-                    <label
-                      htmlFor="description"
-                      className="block text-sm font-medium leading-6 text-gray-900"
-                    >
-                      Description
-                    </label>
-                    <div className="mt-2">
-                      <textarea
-                        id="description"
-                        rows={3}
-                        value={productForm.description}
-                        onChange={(e) =>
-                          setProductForm({
-                            ...productForm,
-                            description: e.target.value,
-                          })
-                        }
-                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Price field */}
-                  <div>
-                    <label
-                      htmlFor="price"
-                      className="block text-sm font-medium leading-6 text-gray-900"
-                    >
-                      Price
-                    </label>
-                    <div className="mt-2">
-                      <input
-                        type="number"
-                        id="price"
-                        required
-                        step="0.01"
-                        min="0"
-                        value={productForm.price}
-                        onChange={(e) =>
-                          setProductForm({
-                            ...productForm,
-                            price: parseFloat(e.target.value),
-                          })
-                        }
-                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Category field */}
-                  <div>
-                    <label
-                      htmlFor="category"
-                      className="block text-sm font-medium leading-6 text-gray-900"
-                    >
-                      Category
-                    </label>
-                    <div className="mt-2">
-                      <select
-                        id="category"
-                        value={productForm.category_id}
-                        onChange={(e) =>
-                          setProductForm({
-                            ...productForm,
-                            category_id: e.target.value,
-                          })
-                        }
-                        className="block w-full rounded-md border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    {/* Name field */}
+                    <div className="col-span-2">
+                      <label
+                        htmlFor="name"
+                        className="block text-sm font-medium leading-6 text-gray-900"
                       >
-                        <option value="">Select a category</option>
-                        {categories.map((category) => (
-                          <option key={category.id} value={category.id}>
-                            {category.name}
-                          </option>
-                        ))}
-                      </select>
+                        Product Name
+                      </label>
+                      <div className="mt-2">
+                        <input
+                          type="text"
+                          id="name"
+                          required
+                          value={productForm.name}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              name: e.target.value,
+                            })
+                          }
+                          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6"
+                          placeholder="Enter product name"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Description field */}
+                    <div className="col-span-2">
+                      <label
+                        htmlFor="description"
+                        className="block text-sm font-medium leading-6 text-gray-900"
+                      >
+                        Description
+                      </label>
+                      <div className="mt-2">
+                        <textarea
+                          id="description"
+                          rows={3}
+                          value={productForm.description}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              description: e.target.value,
+                            })
+                          }
+                          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6"
+                          placeholder="Enter product description"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Price field */}
+                    <div>
+                      <label
+                        htmlFor="price"
+                        className="block text-sm font-medium leading-6 text-gray-900"
+                      >
+                        Price
+                      </label>
+                      <div className="mt-2 relative">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                          <span className="text-gray-500 sm:text-sm">$</span>
+                        </div>
+                        <input
+                          type="number"
+                          id="price"
+                          required
+                          step="0.01"
+                          min="0"
+                          value={productForm.price}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              price: parseFloat(e.target.value),
+                            })
+                          }
+                          className="block w-full rounded-lg border-0 py-2 pl-7 pr-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6"
+                          placeholder="0.00"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Category field */}
+                    <div>
+                      <label
+                        htmlFor="category"
+                        className="block text-sm font-medium leading-6 text-gray-900"
+                      >
+                        Category
+                      </label>
+                      <div className="mt-2">
+                        <select
+                          id="category"
+                          required
+                          value={productForm.category_id}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              category_id: e.target.value,
+                            })
+                          }
+                          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6"
+                        >
+                          <option value="">Select a category</option>
+                          {categories.map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Image upload field */}
+                    <div className="col-span-2">
+                      <label
+                        htmlFor="image"
+                        className="block text-sm font-medium leading-6 text-gray-900"
+                      >
+                        Product Image
+                      </label>
+                      <div className="mt-2 space-y-4">
+                        {/* Image preview */}
+                        <div className="flex items-center gap-4">
+                          <div className="relative w-48 h-48 rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                            {(productForm.existingImagePath || productForm.image) ? (
+                              <>
+                                <img
+                                  src={productForm.image 
+                                    ? URL.createObjectURL(productForm.image)
+                                    : productForm.existingImagePath}
+                                  alt="Product preview"
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs py-1 px-2">
+                                  {productForm.image ? 'New Image' : 'Current Image'}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="flex items-center justify-center w-full h-full text-gray-400">
+                                <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="flex flex-col gap-2">
+                            <div className="relative">
+                              <input
+                                type="file"
+                                id="image"
+                                accept=".jpg,.jpeg,.png,.gif"
+                                onChange={handleImageChange}
+                                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 focus:outline-none cursor-pointer"
+                              />
+                            </div>
+                            {productForm.image && (
+                              <button
+                                type="button"
+                                onClick={() => setProductForm(prev => ({ ...prev, image: null }))}
+                                className="text-sm text-red-600 hover:text-red-700 font-medium"
+                              >
+                                Remove new image
+                              </button>
+                            )}
+                            <p className="text-xs text-gray-500">
+                              Accepted formats: JPG, PNG, GIF (max 5MB)
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-6 flex items-center justify-end gap-x-6">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="text-sm font-semibold leading-6 text-gray-900"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                  >
-                    {editingProduct ? "Update" : "Create"}
-                  </button>
+                  {/* Form actions */}
+                  <div className="mt-8 flex justify-end gap-3">
+                    <button
+                      type="button"
+                      onClick={handleCloseModal}
+                      className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors duration-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 transition-colors duration-200"
+                    >
+                      {editingProduct ? "Update Product" : "Create Product"}
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>

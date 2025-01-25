@@ -1,6 +1,8 @@
 import { categoryQueries, productQueries, orderQueries } from '../db/index.js';
 import { app } from 'electron';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
 
 // Function to generate UUID
 const generateUUID = () => {
@@ -67,42 +69,40 @@ const categoryHandlers = {
 
 // Products handlers
 const productHandlers = {
-  createProduct: async (event, { name, description, price, category_id }) => {
+  uploadImage: async (event, { name, type, data }) => {
     try {
-      const id = generateUUID();
-      const result = productQueries.create.run(
-        id,
-        name, 
-        description, 
-        price, 
-        category_id
-      );
+      console.log('Received file data:', { name, type, dataLength: data?.length });
       
-      return { success: true, id };
+      const uploadDir = path.join(process.cwd(), 'renderer', 'public', 'upload');
+      console.log('Upload directory:', uploadDir);
+      
+      if (!fs.existsSync(uploadDir)) {
+        console.log('Creating upload directory');
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      // Generate unique filename
+      const fileExtension = path.extname(name);
+      const timestamp = Date.now();
+      const uniqueId = crypto.randomUUID().slice(0, 8);
+      const uniqueFilename = `${timestamp}-${uniqueId}${fileExtension}`;
+      
+      const filePath = path.join(uploadDir, uniqueFilename);
+      console.log('Writing file to:', filePath);
+      
+      // Convert the array back to Buffer and write it
+      const buffer = Buffer.from(data);
+      fs.writeFileSync(filePath, buffer);
+      console.log('File written successfully');
+
+      return { success: true, filePath: `/upload/${uniqueFilename}` };
     } catch (error) {
+      console.error('Error in uploadImage handler:', error);
       return { success: false, error: error.message };
     }
   },
 
-  getAllProducts: async () => {
-    try {
-      const products = productQueries.getAll.all();
-      return { success: true, products };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  getProductById: async (event, { id }) => {
-    try {
-      const product = productQueries.getById.get(id);
-      return { success: true, product };
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  },
-
-  updateProduct: async (event, { id, name, description, price, category_id }) => {
+  createProduct: async (event, { name, description, price, category_id, image_path }) => {
     try {
       // Validate required fields
       if (!name || !price || !category_id) {
@@ -114,24 +114,112 @@ const productHandlers = {
         return { success: false, error: 'Price must be a positive number' };
       }
 
-      productQueries.update.run(
-        name, 
-        description || '', 
-        price, 
+      const id = generateUUID();
+      productQueries.create.run(
+        id,
+        name,
+        description,
+        price,
         category_id,
+        image_path
+      );
+      return { success: true, id };
+    } catch (error) {
+      console.error('Error creating product:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  getAllProducts: async () => {
+    try {
+      const products = productQueries.getAll.all();
+      return { success: true, products };
+    } catch (error) {
+      console.error('Error getting products:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  getProductById: async (event, { id }) => {
+    try {
+      const product = productQueries.getById.get(id);
+      return { success: true, product };
+    } catch (error) {
+      console.error('Error getting product:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  updateProduct: async (event, data) => {
+    try {
+      const { id, name, description, price, category_id, image_path } = data;
+      
+      // Validate required fields
+      if (!id || !name || !price || !category_id) {
+        return { success: false, error: 'Missing required fields' };
+      }
+
+      // Validate price is a positive number
+      if (price < 0) {
+        return { success: false, error: 'Price must be a positive number' };
+      }
+
+      // Get the current product to check its image
+      const currentProduct = productQueries.getById.get(id);
+      if (currentProduct && currentProduct.image_path && image_path !== currentProduct.image_path) {
+        // If there's a new image and an old image exists, delete the old one
+        try {
+          const oldImagePath = path.join(process.cwd(), 'renderer', 'public', currentProduct.image_path);
+          if (fs.existsSync(oldImagePath)) {
+            fs.unlinkSync(oldImagePath);
+            console.log('Deleted old image:', oldImagePath);
+          }
+        } catch (error) {
+          console.error('Error deleting old image:', error);
+          // Continue with the update even if image deletion fails
+        }
+      }
+
+      console.log('Updating product:', { id, name, description, price, category_id, image_path });
+      
+      productQueries.update.run(
+        name,
+        description,
+        price,
+        category_id,
+        image_path,
         id
       );
+      
+      console.log('Product updated successfully');
       return { success: true };
     } catch (error) {
+      console.error('Error updating product:', error);
       return { success: false, error: error.message };
     }
   },
 
   deleteProduct: async (event, { id }) => {
     try {
+      // Get the product to check its image
+      const product = productQueries.getById.get(id);
+      if (product && product.image_path) {
+        try {
+          const imagePath = path.join(process.cwd(), 'renderer', 'public', product.image_path);
+          if (fs.existsSync(imagePath)) {
+            fs.unlinkSync(imagePath);
+            console.log('Deleted product image:', imagePath);
+          }
+        } catch (error) {
+          console.error('Error deleting product image:', error);
+          // Continue with the deletion even if image deletion fails
+        }
+      }
+
       productQueries.delete.run(id);
       return { success: true };
     } catch (error) {
+      console.error('Error deleting product:', error);
       return { success: false, error: error.message };
     }
   },

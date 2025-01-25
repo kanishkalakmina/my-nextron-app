@@ -28,6 +28,7 @@ const registerIpcHandlers = () => {
   ipcMain.handle("search-categories", categoryHandlers.searchCategories);
 
   // Products
+  ipcMain.handle("upload-image", productHandlers.uploadImage);
   ipcMain.handle("create-product", productHandlers.createProduct);
   ipcMain.handle("get-all-products", productHandlers.getAllProducts);
   ipcMain.handle("get-product-by-id", productHandlers.getProductById);
@@ -59,10 +60,10 @@ const registerIpcHandlers = () => {
   registerIpcHandlers();
 
   if (isProd) {
-    await mainWindow.loadURL("app://./home");
+    await mainWindow.loadURL("app://./dashboard");
   } else {
     const port = process.argv[2];
-    await mainWindow.loadURL(`http://localhost:${port}/home`);
+    await mainWindow.loadURL(`http://localhost:${port}/dashboard`);
     // mainWindow.webContents.openDevTools()
   }
 })();

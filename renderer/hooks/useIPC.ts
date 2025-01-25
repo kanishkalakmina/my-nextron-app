@@ -63,7 +63,11 @@ declare global {
       searchProducts: (
         searchTerm: string
       ) => Promise<{ success: boolean; products?: any[]; error?: string }>;
-
+      uploadImage: (fileData: {
+        name: string;
+        type: string;
+        data: Array<number>;
+      }) => Promise<{ success: boolean; filePath?: string; error?: string }>;
       // Orders
       createOrder: (data: {
         items: Array<{
@@ -317,10 +321,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
-  const updateOrderStatus = async (data: {
-    id: string;
-    status: string;
-  }) => {
+  const updateOrderStatus = async (data: { id: string; status: string }) => {
     setLoading(true);
     try {
       const result = await window.electron.updateOrderStatus(data);

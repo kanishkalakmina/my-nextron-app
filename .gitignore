@@ -12,3 +12,4 @@ next-env.d.ts
 /app
 dist
 /db1.sqlite
+renderer/public/upload

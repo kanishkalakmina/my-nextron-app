@@ -54,6 +54,14 @@ contextBridge.exposeInMainWorld('electron', {
   },
 
   // Products
+  uploadImage: async (fileData) => {
+    try {
+      return await ipcRenderer.invoke('upload-image', fileData);
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
   createProduct: async (data) => {
     try {
       return await ipcRenderer.invoke('create-product', data);
