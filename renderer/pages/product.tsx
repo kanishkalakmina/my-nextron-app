@@ -334,6 +334,12 @@ const ProductPage = () => {
                         scope="col"
                         className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
                       >
+                        Image
+                      </th>
+                      <th
+                        scope="col"
+                        className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6"
+                      >
                         Name
                       </th>
                       <th
@@ -365,7 +371,24 @@ const ProductPage = () => {
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {products.map((product) => (
                       <tr key={product.id}>
-                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
+                        <td className="whitespace-nowrap py-2 pl-4 pr-3 sm:pl-6">
+                          <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+                            {product.image_path ? (
+                              <img
+                                src={product.image_path}
+                                alt={product.name}
+                                className="h-full w-full object-cover object-center"
+                              />
+                            ) : (
+                              <div className="h-full w-full flex items-center justify-center bg-gray-50">
+                                <svg className="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
                           {product.name}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
@@ -398,7 +421,7 @@ const ProductPage = () => {
                     {products.length === 0 && (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={6}
                           className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 text-center"
                         >
                           No products found
