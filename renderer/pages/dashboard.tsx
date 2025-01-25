@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { 
   MagnifyingGlassIcon, 
@@ -19,6 +19,15 @@ interface OrderItem {
   quantity: number;
 }
 
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  category_id?: string;
+  category_name?: string;
+}
+
 const DashboardPage = () => {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -30,22 +39,67 @@ const DashboardPage = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [holdReference, setHoldReference] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
 
-  // Sample products (replace with your actual products data)
-  const products = [
-    { id: '1', name: 'Berry Mojito', price: 120.00 },
-    { id: '2', name: 'Chicken Pasta', price: 180.00 },
-    { id: '3', name: 'Berry Mojito', price: 120.00 },
-    { id: '4', name: 'Chicken Pasta', price: 180.00 },
-    { id: '5', name: 'Berry Mojito', price: 120.00 },
-    { id: '6', name: 'Chicken Pasta', price: 180.00 },
-    { id: '7', name: 'Berry Mojito', price: 120.00 },
-    { id: '8', name: 'Chicken Pasta', price: 180.00 },
-    { id: '9', name: 'Berry Mojito', price: 120.00 },
-    { id: '10', name: 'Chicken Pasta', price: 180.00 },
-  ];
+  // Fetch products and categories when component mounts
+  useEffect(() => {
+    loadProducts();
+    loadCategories();
+  }, []);
 
-  const addToOrder = (product: typeof products[0]) => {
+  // Filter products when search term or active category changes
+  useEffect(() => {
+    filterProducts();
+  }, [searchTerm, activeCategory, products]);
+
+  const loadProducts = async () => {
+    try {
+      const { success, products } = await window.electron.getAllProducts();
+      if (success && products) {
+        setProducts(products);
+      }
+    } catch (error) {
+      console.error('Error loading products:', error);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const { success, categories } = await window.electron.getAllCategories();
+      if (success && categories) {
+        setCategories([{ id: "all", name: "All" }, ...categories]);
+      }
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
+
+  const filterProducts = () => {
+    let filtered = [...products];
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by category
+    if (activeCategory !== 'all') {
+      filtered = filtered.filter(product => product.category_id === activeCategory);
+    }
+
+    setFilteredProducts(filtered);
+  };
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const addToOrder = (product: Product) => {
     setOrderItems(prevItems => {
       const existingItem = prevItems.find(item => item.id === product.id);
       if (existingItem) {
@@ -92,11 +146,41 @@ const DashboardPage = () => {
     setHoldReference('');
   };
 
-  const handleHoldOrderSubmit = () => {
-    // Here you would save the order with the reference
-    handleCloseHoldModal();
-    // Navigate to orders page
-    router.push('/orders');
+  const handleHoldOrderSubmit = async () => {
+    if (!holdReference) {
+      alert('Please enter a reference number');
+      return;
+    }
+
+    if (orderItems.length === 0) {
+      alert('Please add items to the order');
+      return;
+    }
+
+    try {
+      const orderData = {
+        items: orderItems.map(item => ({
+          id: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        totalAmount: total,
+        referenceNo: holdReference
+      };
+
+      const { success, error } = await window.electron.createHoldOrder(orderData);
+      
+      if (success) {
+        setOrderItems([]);
+        handleCloseHoldModal();
+        router.push('/orders');
+      } else {
+        alert(error || 'Failed to create hold order');
+      }
+    } catch (error) {
+      console.error('Error creating hold order:', error);
+      alert('Failed to create hold order');
+    }
   };
 
   // Calculate totals
@@ -108,6 +192,16 @@ const DashboardPage = () => {
   const afterDiscount = subtotal - discountAmount;
   const tax = afterDiscount * 0.18; // 18% tax
   const total = afterDiscount + tax;
+
+  const ProductCard = ({ product }) => (
+    <div
+      onClick={() => addToOrder(product)}
+      className="bg-white p-4 rounded-lg shadow cursor-pointer hover:shadow-lg transition-shadow"
+    >
+      <h3 className="text-lg font-semibold mb-2">{product.name}</h3>
+      <p className="text-green-600 font-bold">Rs. {product.price.toFixed(2)}</p>
+    </div>
+  );
 
   return (
     <Layout>
@@ -125,6 +219,8 @@ const DashboardPage = () => {
                 type="text"
                 placeholder="Search menu items..."
                 className="w-full pl-10 pr-4 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
+                value={searchTerm}
+                onChange={handleSearch}
               />
               <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             </div>
@@ -156,18 +252,8 @@ const DashboardPage = () => {
               }}
             >
               <div className="grid grid-cols-4 gap-4 p-4">
-                {products.map((product) => (
-                  <div 
-                    key={product.id}
-                    onClick={() => addToOrder(product)}
-                    className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow transition-shadow"
-                  >
-                    <div className="aspect-square bg-gray-100"></div>
-                    <div className="p-3">
-                      <h3 className="text-[15px] font-medium text-gray-900">{product.name}</h3>
-                      <p className="text-blue-500 font-medium mt-1">Rs. {product.price.toFixed(2)}</p>
-                    </div>
-                  </div>
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
                 ))}
               </div>
             </div>
