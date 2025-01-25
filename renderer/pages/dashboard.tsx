@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { 
   MagnifyingGlassIcon, 
@@ -19,10 +19,24 @@ interface OrderItem {
   quantity: number;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  description?: string;
+  category_id?: string;
+}
+
 const DashboardPage = () => {
   const router = useRouter();
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [categories, setCategories] = useState([
+  const [categories, setCategories] = useState<Category[]>([
     { id: "all", name: "All" },
   ]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
@@ -30,20 +44,66 @@ const DashboardPage = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [holdReference, setHoldReference] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Sample products (replace with your actual products data)
-  const products = [
-    { id: '1', name: 'Berry Mojito', price: 120.00 },
-    { id: '2', name: 'Chicken Pasta', price: 180.00 },
-    { id: '3', name: 'Berry Mojito', price: 120.00 },
-    { id: '4', name: 'Chicken Pasta', price: 180.00 },
-    { id: '5', name: 'Berry Mojito', price: 120.00 },
-    { id: '6', name: 'Chicken Pasta', price: 180.00 },
-    { id: '7', name: 'Berry Mojito', price: 120.00 },
-    { id: '8', name: 'Chicken Pasta', price: 180.00 },
-    { id: '9', name: 'Berry Mojito', price: 120.00 },
-    { id: '10', name: 'Chicken Pasta', price: 180.00 },
-  ];
+  // Fetch categories when component mounts
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const { success, categories } = await window.electron.getAllCategories();
+        if (success && categories) {
+          setCategories([{ id: "all", name: "All" }, ...categories]);
+        }
+      } catch (error) {
+        console.error('Error loading categories:', error);
+      }
+    };
+
+    loadCategories();
+  }, []);
+
+  // Fetch products when component mounts
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        const { success, products } = await window.electron.getAllProducts();
+        if (success && products) {
+          setProducts(products);
+          setFilteredProducts(products);
+        }
+      } catch (error) {
+        console.error('Error loading products:', error);
+      }
+    };
+
+    loadProducts();
+  }, []);
+
+  // Filter products when category changes or search term changes
+  useEffect(() => {
+    let filtered = [...products];
+
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filter by category
+    if (activeCategory !== 'all') {
+      filtered = filtered.filter(product => product.category_id === activeCategory);
+    }
+
+    setFilteredProducts(filtered);
+  }, [activeCategory, searchTerm, products]);
+
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
 
   const addToOrder = (product: typeof products[0]) => {
     setOrderItems(prevItems => {
@@ -125,6 +185,8 @@ const DashboardPage = () => {
                 type="text"
                 placeholder="Search menu items..."
                 className="w-full pl-10 pr-4 py-2 rounded-lg border focus:outline-none focus:border-blue-500"
+                value={searchTerm}
+                onChange={handleSearch}
               />
               <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
             </div>
@@ -156,13 +218,12 @@ const DashboardPage = () => {
               }}
             >
               <div className="grid grid-cols-4 gap-4 p-4">
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <div 
                     key={product.id}
                     onClick={() => addToOrder(product)}
                     className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow transition-shadow"
                   >
-                    <div className="aspect-square bg-gray-100"></div>
                     <div className="p-3">
                       <h3 className="text-[15px] font-medium text-gray-900">{product.name}</h3>
                       <p className="text-blue-500 font-medium mt-1">Rs. {product.price.toFixed(2)}</p>
