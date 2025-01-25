@@ -218,7 +218,7 @@ const DashboardPage = () => {
                 scrollbarColor: '#E5E7EB transparent'
               }}
             >
-              <div className="grid grid-cols-4 gap-4 p-4">
+              <div className="grid grid-cols-5 gap-4 p-4">
                 {filteredProducts.map((product) => (
                   <div 
                     key={product.id}
