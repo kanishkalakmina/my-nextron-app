@@ -1,3 +1,4 @@
+import path from 'path';
 import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import {
@@ -285,6 +286,17 @@ const ProductPage = () => {
     }
   };
 
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) return '';
+    
+    if (process.env.NODE_ENV === 'production') {
+      // Use custom protocol in production
+      return `upload://${path.basename(imagePath)}`;
+    }
+    // Use relative path in development
+    return imagePath;
+  };
+
   return (
     <Layout>
       <Head>
@@ -376,9 +388,9 @@ const ProductPage = () => {
                           <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
                             {product.image_path ? (
                               <img
-                                src={product.image_path}
+                                src={getImageUrl(product.image_path)}
                                 alt={product.name}
-                                className="h-full w-full object-cover object-center"
+                                className="w-10 h-10 object-cover rounded"
                               />
                             ) : (
                               <div className="h-full w-full flex items-center justify-center bg-gray-50">
@@ -477,6 +489,7 @@ const ProductPage = () => {
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
+                      strokeWidth={1}
                       d="M6 18L18 6M6 6l12 12"
                     />
                   </svg>

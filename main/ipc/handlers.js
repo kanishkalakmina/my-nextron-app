@@ -9,6 +9,18 @@ const generateUUID = () => {
   return crypto.randomUUID();
 };
 
+const getUploadDir = () => {
+  const isProd = process.env.NODE_ENV === 'production';
+  if (isProd) {
+    // Use AppData in production
+    const appDataPath = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
+    return path.join(appDataPath, 'my-nextron-app', 'uploads');
+  } else {
+    // Use public directory in development
+    return path.join(process.cwd(), 'renderer', 'public', 'upload');
+  }
+};
+
 // Categories handlers
 const categoryHandlers = {
   createCategory: async (event, { name, description }) => {
@@ -73,7 +85,7 @@ const productHandlers = {
     try {
       console.log('Received file data:', { name, type, dataLength: data?.length });
       
-      const uploadDir = path.join(process.cwd(), 'renderer', 'public', 'upload');
+      const uploadDir = getUploadDir();
       console.log('Upload directory:', uploadDir);
       
       if (!fs.existsSync(uploadDir)) {
@@ -95,7 +107,11 @@ const productHandlers = {
       fs.writeFileSync(filePath, buffer);
       console.log('File written successfully');
 
-      return { success: true, filePath: `/upload/${uniqueFilename}` };
+      // In production, we need to serve files from the AppData directory
+      const isProd = process.env.NODE_ENV === 'production';
+      const relativePath = isProd ? filePath : `/upload/${uniqueFilename}`;
+
+      return { success: true, filePath: relativePath };
     } catch (error) {
       console.error('Error in uploadImage handler:', error);
       return { success: false, error: error.message };

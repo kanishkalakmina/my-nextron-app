@@ -6,20 +6,29 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// In development, store the database in the project directory
-// In production, store it in the user's app data directory
 const isProd = process.env.NODE_ENV === "production";
-const dbPath = isProd
-  ? path.join(process.env.APPDATA, "my-nextron-app/db1.sqlite")
-  : path.join(__dirname, "../../db1.sqlite");
+const getDbPath = () => {
+  if (isProd) {
+    // For Windows, use APPDATA
+    if (process.env.APPDATA) {
+      return path.join(process.env.APPDATA, "my-nextron-app/db.sqlite");
+    }
+    // Fallback for other OS or if APPDATA is not available
+    const userHome = process.env.HOME || process.env.USERPROFILE;
+    return path.join(userHome, ".my-nextron-app/db.sqlite");
+  }
+  // Development path
+  return path.join(__dirname, "../../db.sqlite");
+};
+
+const dbPath = getDbPath();
 
 // Ensure the database directory exists
 if (isProd) {
   const dbDir = path.dirname(dbPath);
   if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, {
-      recursive: true,
-    });
+    fs.mkdirSync(dbDir, { recursive: true });
+    console.log("Created database directory:", dbDir);
   }
 }
 
@@ -29,7 +38,7 @@ try {
 
   // Initialize tables only if they don't exist
   db.exec(`
-    -- Create categories table
+    -- Create categories table if not exists
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -38,7 +47,7 @@ try {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
-    -- Create products table
+    -- Create products table if not exists
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
@@ -51,7 +60,7 @@ try {
       FOREIGN KEY (category_id) REFERENCES categories(id)
     );
 
-    -- Create orders table
+    -- Create orders table if not exists
     CREATE TABLE IF NOT EXISTS orders (
       id TEXT PRIMARY KEY,
       total_amount REAL NOT NULL,
@@ -60,7 +69,7 @@ try {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
-    -- Create order_items table
+    -- Create order_items table if not exists
     CREATE TABLE IF NOT EXISTS order_items (
       id TEXT PRIMARY KEY,
       order_id TEXT NOT NULL,
@@ -76,6 +85,8 @@ try {
 
   // Enable foreign key support
   db.exec("PRAGMA foreign_keys = ON;");
+  
+  console.log("Database initialized successfully at:", dbPath);
 } catch (error) {
   console.error("Database initialization error:", error);
   throw error;

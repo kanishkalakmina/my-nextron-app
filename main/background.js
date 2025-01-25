@@ -1,5 +1,5 @@
 import path from "path";
-import { app, ipcMain, dialog } from "electron";
+import { app, ipcMain, dialog, protocol } from "electron";
 import serve from "electron-serve";
 import { createWindow } from "./helpers";
 import {
@@ -11,8 +11,16 @@ import {
 const isProd = process.env.NODE_ENV === "production";
 
 if (isProd) {
-  serve({
-    directory: "app",
+  serve({ directory: "app" });
+  
+  // Register protocol for serving images from AppData
+  app.whenReady().then(() => {
+    protocol.registerFileProtocol('upload', (request, callback) => {
+      const appDataPath = process.env.APPDATA || (process.platform == 'darwin' ? process.env.HOME + '/Library/Preferences' : process.env.HOME + "/.local/share");
+      const url = request.url.replace('upload://', '');
+      const filePath = path.join(appDataPath, 'my-nextron-app', 'uploads', path.basename(url));
+      callback({ path: filePath });
+    });
   });
 } else {
   app.setPath("userData", `${app.getPath("userData")} (development)`);
