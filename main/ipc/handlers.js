@@ -1,4 +1,4 @@
-import { categoryQueries, productQueries, orderQueries } from '../db/index.js';
+import { categoryQueries, productQueries, orderQueries, holdOrderQueries } from '../db/index.js';
 import { app } from 'electron';
 import crypto from 'crypto';
 import fs from 'fs';
@@ -311,8 +311,52 @@ const orderHandlers = {
   }
 };
 
+// Hold Orders handlers
+const holdOrderHandlers = {
+  createHoldOrder: async (event, { reference, items, total_items, total_amount }) => {
+    try {
+      const id = generateUUID();
+      holdOrderQueries.create.run(
+        id,
+        reference,
+        JSON.stringify(items),
+        total_items,
+        total_amount
+      );
+      return { success: true, id };
+    } catch (error) {
+      console.error('Error creating held order:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  getAllHoldOrders: async () => {
+    try {
+      const orders = holdOrderQueries.getAll.all().map(order => ({
+        ...order,
+        items: JSON.parse(order.items)
+      }));
+      return { success: true, orders };
+    } catch (error) {
+      console.error('Error getting held orders:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  deleteHoldOrder: async (event, { id }) => {
+    try {
+      holdOrderQueries.delete.run(id);
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting held order:', error);
+      return { success: false, error: error.message };
+    }
+  }
+};
+
 export {
   categoryHandlers,
   productHandlers,
-  orderHandlers
+  orderHandlers,
+  holdOrderHandlers
 };

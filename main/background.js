@@ -6,6 +6,7 @@ import {
   categoryHandlers,
   productHandlers,
   orderHandlers,
+  holdOrderHandlers,
 } from "./ipc/handlers";
 
 const isProd = process.env.NODE_ENV === "production";
@@ -50,6 +51,11 @@ const registerIpcHandlers = () => {
   ipcMain.handle("get-order-by-id", orderHandlers.getOrderById);
   ipcMain.handle("update-order-status", orderHandlers.updateOrderStatus);
   ipcMain.handle("search-orders", orderHandlers.searchOrders);
+
+  // Hold Orders
+  ipcMain.handle("create-hold-order", holdOrderHandlers.createHoldOrder);
+  ipcMain.handle("get-all-hold-orders", holdOrderHandlers.getAllHoldOrders);
+  ipcMain.handle("delete-hold-order", holdOrderHandlers.deleteHoldOrder);
 };
 
 (async () => {

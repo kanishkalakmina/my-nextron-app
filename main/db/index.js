@@ -81,6 +81,16 @@ try {
       FOREIGN KEY (order_id) REFERENCES orders(id),
       FOREIGN KEY (product_id) REFERENCES products(id)
     );
+
+    -- Create hold_orders table if not exists
+    CREATE TABLE IF NOT EXISTS hold_orders (
+      id TEXT PRIMARY KEY,
+      reference TEXT NOT NULL,
+      items TEXT NOT NULL,
+      total_items INTEGER NOT NULL,
+      total_amount REAL NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Enable foreign key support
@@ -201,4 +211,20 @@ const orderQueries = {
   `),
 };
 
-export { categoryQueries, productQueries, orderQueries };
+// Hold Orders CRUD
+const holdOrderQueries = {
+  create: db.prepare(`
+    INSERT INTO hold_orders (id, reference, items, total_items, total_amount)
+    VALUES (?, ?, ?, ?, ?)
+  `),
+  getAll: db.prepare('SELECT * FROM hold_orders ORDER BY created_at DESC'),
+  getById: db.prepare('SELECT * FROM hold_orders WHERE id = ?'),
+  delete: db.prepare('DELETE FROM hold_orders WHERE id = ?')
+};
+
+export { 
+  categoryQueries, 
+  productQueries, 
+  orderQueries,
+  holdOrderQueries 
+};

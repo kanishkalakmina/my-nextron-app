@@ -49,7 +49,7 @@ const DashboardPage = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch categories when component mounts
+  // Fetch categories and products when component mounts
   useEffect(() => {
     const loadCategories = async () => {
       try {
@@ -62,11 +62,6 @@ const DashboardPage = () => {
       }
     };
 
-    loadCategories();
-  }, []);
-
-  // Fetch products when component mounts
-  useEffect(() => {
     const loadProducts = async () => {
       try {
         const { success, products } = await window.electron.getAllProducts();
@@ -79,8 +74,25 @@ const DashboardPage = () => {
       }
     };
 
+    loadCategories();
     loadProducts();
   }, []);
+
+  // Handle recalled order
+  useEffect(() => {
+    // Handle recalled order if present in URL query
+    const { recalledOrder } = router.query;
+    if (recalledOrder && typeof recalledOrder === 'string') {
+      try {
+        const items = JSON.parse(recalledOrder);
+        setOrderItems(items);
+        // Remove the query parameter after loading
+        router.replace('/dashboard', undefined, { shallow: true });
+      } catch (error) {
+        console.error('Error parsing recalled order:', error);
+      }
+    }
+  }, [router.query]);
 
   // Filter products when category changes or search term changes
   useEffect(() => {
@@ -153,11 +165,32 @@ const DashboardPage = () => {
     setHoldReference('');
   };
 
-  const handleHoldOrderSubmit = () => {
-    // Here you would save the order with the reference
-    handleCloseHoldModal();
-    // Navigate to orders page
-    router.push('/orders');
+  const handleHoldOrderSubmit = async () => {
+    if (!holdReference.trim()) {
+      alert('Please enter a reference number');
+      return;
+    }
+
+    if (orderItems.length === 0) {
+      alert('Please add items to the order');
+      return;
+    }
+
+    const result = await window.electron.createHoldOrder({
+      reference: holdReference,
+      items: orderItems,
+      total_items: orderItems.reduce((sum, item) => sum + item.quantity, 0),
+      total_amount: total
+    });
+
+    if (result.success) {
+      setOrderItems([]);
+      setHoldReference('');
+      setIsHoldModalOpen(false);
+      router.push('/orders');
+    } else {
+      alert('Failed to hold order: ' + result.error);
+    }
   };
 
   // Calculate totals
@@ -223,9 +256,9 @@ const DashboardPage = () => {
                   <div 
                     key={product.id}
                     onClick={() => addToOrder(product)}
-                    className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 h-[280px]"
+                    className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 h-[200px]"
                   >
-                    <div className="w-full h-48">
+                    <div className="w-full h-25">
                       {product.image_path ? (
                         <img
                           src={product.image_path}

@@ -152,4 +152,30 @@ contextBridge.exposeInMainWorld('electron', {
       return { success: false, error: error.message };
     }
   },
+
+  // Hold Orders
+  createHoldOrder: async (data) => {
+    try {
+      return await ipcRenderer.invoke('create-hold-order', data);
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+  getAllHoldOrders: async () => {
+    try {
+      return await ipcRenderer.invoke('get-all-hold-orders');
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+  deleteHoldOrder: async (id) => {
+    try {
+      return await ipcRenderer.invoke('delete-hold-order', { id });
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  }
 });
