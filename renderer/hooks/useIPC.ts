@@ -92,6 +92,11 @@ declare global {
       searchOrders: (
         searchTerm: string
       ) => Promise<{ success: boolean; orders?: any[]; error?: string }>;
+      // payment
+      showNotification: (data: {
+        title: string;
+        body: string;
+      }) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }
