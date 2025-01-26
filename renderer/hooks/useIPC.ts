@@ -92,6 +92,54 @@ declare global {
       searchOrders: (
         searchTerm: string
       ) => Promise<{ success: boolean; orders?: any[]; error?: string }>;
+
+      // User management
+      createUser: (data: {
+        username: string;
+        password: string;
+        full_name: string;
+        email: string;
+        phone?: string;
+        role: 'admin' | 'cashier' | 'manager';
+        status: 'active' | 'inactive' | 'suspended';
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      getAllUsers: () => Promise<{
+        success: boolean;
+        users?: Array<{
+          id: string;
+          username: string;
+          full_name: string;
+          email: string;
+          phone?: string;
+          role: 'admin' | 'cashier' | 'manager';
+          status: 'active' | 'inactive' | 'suspended';
+          last_login?: string;
+          created_at: string;
+        }>;
+        error?: string;
+      }>;
+
+      updateUser: (data: {
+        id: string;
+        username: string;
+        password?: string;
+        full_name: string;
+        email: string;
+        phone?: string;
+        role: 'admin' | 'cashier' | 'manager';
+        status: 'active' | 'inactive' | 'suspended';
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      deleteUser: (data: { id: string }) => Promise<{ success: boolean; error?: string }>;
+
+      resetPassword: (data: { id: string }) => Promise<{ success: boolean; error?: string }>;
+
+      validateResetToken: (data: { token: string }) => Promise<{
+        success: boolean;
+        userId?: string;
+        error?: string;
+      }>;
     };
   }
 }
@@ -335,6 +383,108 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  // User management
+  const createUser = async (data: {
+    username: string;
+    password: string;
+    full_name: string;
+    email: string;
+    phone?: string;
+    role: 'admin' | 'cashier' | 'manager';
+    status: 'active' | 'inactive' | 'suspended';
+  }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.createUser(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to create user");
+        return null;
+      }
+      return result;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAllUsers = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllUsers();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch users");
+        return [];
+      }
+      return result.users;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUser = async (data: {
+    id: string;
+    username: string;
+    password?: string;
+    full_name: string;
+    email: string;
+    phone?: string;
+    role: 'admin' | 'cashier' | 'manager';
+    status: 'active' | 'inactive' | 'suspended';
+  }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.updateUser(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to update user");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteUser = async (data: { id: string }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.deleteUser(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to delete user");
+        return null;
+      }
+      return result.success;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (data: { id: string }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.resetPassword(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to reset password");
+        return null;
+      }
+      return result.success;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const validateResetToken = async (data: { token: string }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.validateResetToken(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to validate reset token");
+        return null;
+      }
+      return result;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
@@ -355,5 +505,12 @@ export function useIPC(options: UseIPCOptions = {}) {
     getAllOrders,
     getOrderById,
     updateOrderStatus,
+    // User management
+    createUser,
+    getAllUsers,
+    updateUser,
+    deleteUser,
+    resetPassword,
+    validateResetToken,
   };
 }

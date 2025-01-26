@@ -2,6 +2,8 @@ import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+const bcrypt = require('bcrypt');
+const { v4: uuidv4 } = require('uuid');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -81,7 +83,46 @@ try {
       FOREIGN KEY (order_id) REFERENCES orders(id),
       FOREIGN KEY (product_id) REFERENCES products(id)
     );
+
+    -- Create users table
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      full_name TEXT NOT NULL,
+      email TEXT UNIQUE,
+      phone TEXT,
+      role TEXT NOT NULL CHECK(role IN ('admin', 'manager', 'cashier')),
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'suspended')),
+      login_attempts INTEGER DEFAULT 0,
+      last_login DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_by TEXT,
+      password_reset_token TEXT,
+      password_reset_expires DATETIME
+    )
   `);
+
+  // Create default admin user if not exists
+  const createDefaultAdmin = db.prepare(`
+    INSERT OR IGNORE INTO users (
+      id, username, password, full_name, email, role, status
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  (async () => {
+    const hashedPassword = await bcrypt.hash('admin@123', 10);
+    createDefaultAdmin.run(
+      uuidv4(),
+      'admin',
+      hashedPassword,
+      'System Administrator',
+      'admin@system.com',
+      'admin',
+      'active'
+    );
+  })();
 
   // Enable foreign key support
   db.exec("PRAGMA foreign_keys = ON;");
@@ -201,4 +242,54 @@ const orderQueries = {
   `),
 };
 
-export { categoryQueries, productQueries, orderQueries };
+// Users CRUD
+const userQueries = {
+  create: db.prepare(`
+    INSERT INTO users (username, password, full_name, email, phone, role, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `),
+  getAll: db.prepare("SELECT * FROM users ORDER BY created_at DESC"),
+  getById: db.prepare("SELECT * FROM users WHERE id = ?"),
+  getByUsername: db.prepare("SELECT * FROM users WHERE username = ?"),
+  update: db.prepare(`
+    UPDATE users 
+    SET username = ?, 
+        full_name = ?, 
+        email = ?,
+        phone = ?,
+        role = ?,
+        status = ?,
+        updated_at = CURRENT_TIMESTAMP 
+    WHERE id = ?
+  `),
+  updatePassword: db.prepare(`
+    UPDATE users 
+    SET password = ?,
+        updated_at = CURRENT_TIMESTAMP 
+    WHERE username = ?
+  `),
+  updateLoginAttempts: db.prepare(`
+    UPDATE users 
+    SET login_attempts = login_attempts + 1,
+        updated_at = CURRENT_TIMESTAMP 
+    WHERE username = ?
+  `),
+  resetLoginAttempts: db.prepare(`
+    UPDATE users 
+    SET login_attempts = 0,
+        updated_at = CURRENT_TIMESTAMP 
+    WHERE username = ?
+  `),
+  updateLastLogin: db.prepare(`
+    UPDATE users 
+    SET last_login = CURRENT_TIMESTAMP,
+        updated_at = CURRENT_TIMESTAMP 
+    WHERE username = ?
+  `),
+  delete: db.prepare("DELETE FROM users WHERE id = ?"),
+  search: db.prepare(`
+    SELECT * FROM users WHERE username LIKE ? ORDER BY created_at DESC
+  `),
+};
+
+export { categoryQueries, productQueries, orderQueries, userQueries };

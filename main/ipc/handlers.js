@@ -3,6 +3,7 @@ import { app } from 'electron';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
+import bcrypt from 'bcrypt';
 
 // Function to generate UUID
 const generateUUID = () => {
@@ -311,8 +312,105 @@ const orderHandlers = {
   }
 };
 
+// User handlers
+import { db } from "../db/index.js";
+import { userQueries } from "../db/userQueries.js";
+
+const userHandlers = {
+  createUser: async (event, data) => {
+    try {
+      const { username, password, fullName, email, phone, role, status } = data;
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      userQueries.create.run(username, hashedPassword, fullName, email, phone, role, status);
+      return { success: true };
+    } catch (error) {
+      console.error("Error in createUser:", error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  getAllUsers: async () => {
+    try {
+      const users = userQueries.getAll.all();
+      // Don't send password and sensitive info to frontend
+      const sanitizedUsers = users.map(user => {
+        const { password, ...rest } = user;
+        return rest;
+      });
+      return { success: true, users: sanitizedUsers };
+    } catch (error) {
+      console.error("Error in getAllUsers:", error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  updateUser: async (event, data) => {
+    try {
+      const { id, username, fullName, email, phone, role, status } = data;
+      userQueries.update.run(username, fullName, email, phone, role, status, id);
+      return { success: true };
+    } catch (error) {
+      console.error("Error in updateUser:", error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  deleteUser: async (event, id) => {
+    try {
+      userQueries.delete.run(id);
+      return { success: true };
+    } catch (error) {
+      console.error("Error in deleteUser:", error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  resetUserPassword: async (event, data) => {
+    try {
+      const { username, currentPassword, adminPassword, newPassword, resetMethod } = data;
+
+      // Get the user
+      const user = userQueries.getByUsername.get(username);
+      if (!user) {
+        return { success: false, error: "User not found" };
+      }
+
+      if (resetMethod === 'self') {
+        // Verify current password
+        const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+        if (!isValidPassword) {
+          return { success: false, error: "Current password is incorrect" };
+        }
+      } else if (resetMethod === 'admin') {
+        // Get admin user and verify admin password
+        const admin = userQueries.getByUsername.get('admin');
+        if (!admin) {
+          return { success: false, error: "Admin account not found" };
+        }
+
+        const isValidAdminPassword = await bcrypt.compare(adminPassword, admin.password);
+        if (!isValidAdminPassword) {
+          return { success: false, error: "Admin password is incorrect" };
+        }
+      }
+
+      // Hash and update the new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      userQueries.updatePassword.run(hashedPassword, username);
+      userQueries.resetLoginAttempts.run(username);
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error in resetUserPassword:", error);
+      return { success: false, error: error.message };
+    }
+  }
+};
+
 export {
   categoryHandlers,
   productHandlers,
-  orderHandlers
+  orderHandlers,
+  userHandlers
 };

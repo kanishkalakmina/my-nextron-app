@@ -152,4 +152,13 @@ contextBridge.exposeInMainWorld('electron', {
       return { success: false, error: error.message };
     }
   },
+
+  // User management
+  createUser: (data) => ipcRenderer.invoke('createUser', data),
+  getAllUsers: () => ipcRenderer.invoke('getAllUsers'),
+  updateUser: (data) => ipcRenderer.invoke('updateUser', data),
+  deleteUser: (data) => ipcRenderer.invoke('deleteUser', data),
+  resetPassword: (data) => ipcRenderer.invoke('resetPassword', data),
+  validateResetToken: (data) => ipcRenderer.invoke('validateResetToken', data),
+  resetUserPassword: (data) => ipcRenderer.invoke('resetUserPassword', data),
 });
