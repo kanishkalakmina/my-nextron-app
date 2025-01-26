@@ -7,8 +7,8 @@ import {
 } from "@heroicons/react/24/outline";
 import Bill from "./Bill";
 import toast from "react-hot-toast";
-import crypto from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from "crypto";
+import { v4 as uuidv4 } from "uuid";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -145,7 +145,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       }
     }
   };
+  function createTimestampId() {
+    const now = new Date();
 
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+    const day = String(now.getDate()).padStart(2, "0");
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+
+    return `${year}${month}${day}${hours}${minutes}${seconds}`;
+  }
   const handlePayment = async () => {
     const amountPaid = parseFloat(amount) || 0;
     if (amountPaid < total && paymentMethod === "cash") {
@@ -154,15 +165,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     }
 
     try {
-      // Generate a unique order ID
-      const orderId = `ORD-${Date.now()}-${Math.random()
-        .toString(36)
-        .substr(2, 9)}`;
-
       // Save payment details to database
       const paymentDetails = {
         id: uuidv4(),
-        order_id: orderId,
+        order_id: createTimestampId(),
         amount: total,
         payment_method: paymentMethod,
         payment_date: new Date().toISOString(),
