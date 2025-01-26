@@ -98,7 +98,7 @@ try {
     );
 
      CREATE TABLE IF NOT EXISTS payments (
-      id INTEGER PRIMARY KEY,
+      id TEXT PRIMARY KEY,
       order_id TEXT NOT NULL,
       amount REAL NOT NULL,
       payment_method TEXT NOT NULL,
