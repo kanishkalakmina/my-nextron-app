@@ -1,36 +1,57 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
 import { ChartBarIcon, DocumentChartBarIcon, CurrencyDollarIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
 import Layout from '../components/Layout';
+import toast from 'react-hot-toast';
 
-const reports = [
-  {
-    name: 'Sales Report',
-    description: 'View detailed sales analytics and trends',
-    icon: CurrencyDollarIcon,
-    href: '#',
-  },
-  {
-    name: 'Inventory Report',
-    description: 'Track product stock levels and movements',
-    icon: DocumentChartBarIcon,
-    href: '#',
-  },
-  {
-    name: 'Orders Report',
-    description: 'Analyze order patterns and customer behavior',
-    icon: ShoppingCartIcon,
-    href: '#',
-  },
-  {
-    name: 'Performance Report',
-    description: 'Monitor business performance metrics',
-    icon: ChartBarIcon,
-    href: '#',
-  },
-];
+interface DailyIncome {
+  date: string;
+  total_transactions: number;
+  total_amount: number;
+  total_discount: number;
+  total_tax: number;
+}
 
 const ReportsPage = () => {
+  const [dailyIncome, setDailyIncome] = useState<DailyIncome[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  });
+
+  const fetchDailyIncome = async () => {
+    try {
+      setIsLoading(true);
+      const result = await window.electron.getDailyIncome();
+      if (result.success) {
+        setDailyIncome(result.data);
+      } else {
+        throw new Error(result.error || 'Failed to fetch daily income');
+      }
+    } catch (error) {
+      console.error('Error fetching daily income:', error);
+      toast.error('Failed to load income data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDailyIncome();
+  }, []);
+
+  const calculateTotals = () => {
+    return dailyIncome.reduce((acc, day) => ({
+      transactions: acc.transactions + day.total_transactions,
+      amount: acc.amount + day.total_amount,
+      discount: acc.discount + day.total_discount,
+      tax: acc.tax + day.total_tax
+    }), { transactions: 0, amount: 0, discount: 0, tax: 0 });
+  };
+
+  const totals = calculateTotals();
+
   return (
     <Layout>
       <Head>
@@ -45,50 +66,135 @@ const ReportsPage = () => {
           </p>
         </div>
 
-        {/* Reports Grid */}
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-2">
-          {reports.map((report) => (
-            <div
-              key={report.name}
-              className="relative rounded-lg border border-gray-300 bg-white p-6 shadow-sm hover:shadow-md transition-shadow duration-200"
-            >
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <report.icon className="h-8 w-8 text-indigo-600" aria-hidden="true" />
+                  <CurrencyDollarIcon className="h-6 w-6 text-gray-400" />
                 </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-medium text-gray-900">{report.name}</h3>
-                  <p className="mt-1 text-sm text-gray-500">{report.description}</p>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
+                    <dd className="text-lg font-semibold text-gray-900">Rs. {totals.amount.toFixed(2)}</dd>
+                  </dl>
                 </div>
-              </div>
-              <div className="mt-4">
-                <button
-                  type="button"
-                  className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
-                >
-                  View Report
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Summary Charts */}
-        <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <div className="rounded-lg bg-white shadow">
-            <div className="p-6">
-              <h3 className="text-lg font-medium leading-6 text-gray-900">Sales Overview</h3>
-              <div className="mt-2 h-64 rounded-lg bg-gray-50 p-4">
-                <p className="text-center text-gray-500">Sales chart will be implemented here</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-lg bg-white shadow">
-            <div className="p-6">
-              <h3 className="text-lg font-medium leading-6 text-gray-900">Top Products</h3>
-              <div className="mt-2 h-64 rounded-lg bg-gray-50 p-4">
-                <p className="text-center text-gray-500">Products chart will be implemented here</p>
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <ShoppingCartIcon className="h-6 w-6 text-gray-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Total Transactions</dt>
+                    <dd className="text-lg font-semibold text-gray-900">{totals.transactions}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <DocumentChartBarIcon className="h-6 w-6 text-gray-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Total Tax</dt>
+                    <dd className="text-lg font-semibold text-gray-900">Rs. {totals.tax.toFixed(2)}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <ChartBarIcon className="h-6 w-6 text-gray-400" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">Total Discounts</dt>
+                    <dd className="text-lg font-semibold text-gray-900">Rs. {totals.discount.toFixed(2)}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Daily Income Table */}
+        <div className="mt-8">
+          <div className="sm:flex sm:items-center">
+            <div className="sm:flex-auto">
+              <h2 className="text-xl font-semibold text-gray-900">Daily Income Report</h2>
+              <p className="mt-2 text-sm text-gray-700">
+                A detailed list of daily transactions and revenue.
+              </p>
+            </div>
+          </div>
+          
+          <div className="mt-6 flex flex-col">
+            <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
+              <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
+                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                  <table className="min-w-full divide-y divide-gray-300">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">Date</th>
+                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Transactions</th>
+                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Revenue</th>
+                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Tax</th>
+                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Discounts</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200 bg-white">
+                      {isLoading ? (
+                        <tr>
+                          <td colSpan={5} className="py-4 text-center text-sm text-gray-500">
+                            Loading data...
+                          </td>
+                        </tr>
+                      ) : dailyIncome.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-4 text-center text-sm text-gray-500">
+                            No data available
+                          </td>
+                        </tr>
+                      ) : (
+                        dailyIncome.map((day) => (
+                          <tr key={day.date}>
+                            <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-900">
+                              {new Date(day.date).toLocaleDateString()}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              {day.total_transactions}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              Rs. {day.total_amount.toFixed(2)}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              Rs. {day.total_tax.toFixed(2)}
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                              Rs. {day.total_discount.toFixed(2)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

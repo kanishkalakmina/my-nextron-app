@@ -6,6 +6,9 @@ import {
   BackspaceIcon,
 } from "@heroicons/react/24/outline";
 import Bill from "./Bill";
+import toast from "react-hot-toast";
+import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -143,15 +146,50 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     const amountPaid = parseFloat(amount) || 0;
     if (amountPaid < total && paymentMethod === "cash") {
       alert("Insufficient amount");
       return;
     }
-    printBill();
-    onPaymentComplete();
-    onClose();
+
+    try {
+      // Generate a unique order ID
+      const orderId = `ORD-${Date.now()}-${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
+
+      // Save payment details to database
+      const paymentDetails = {
+        id: uuidv4(),
+        order_id: orderId,
+        amount: total,
+        payment_method: paymentMethod,
+        payment_date: new Date().toISOString(),
+        subtotal,
+        discount,
+        tax,
+        total,
+        amount_received: amountPaid,
+        change_amount: getChange(),
+        status: "paid",
+        created_at: new Date().toISOString(),
+      };
+
+      const result = await window.electron.savePayment(paymentDetails);
+      console.log(result);
+      if (!result.success) {
+        throw new Error(result.error || "Failed to save payment");
+      }
+
+      toast.success("Payment completed successfully");
+      printBill();
+      onPaymentComplete();
+      onClose();
+    } catch (error) {
+      console.error("Payment error:", error);
+      toast.error("Failed to process payment. Please try again.");
+    }
   };
 
   const getChange = () => {

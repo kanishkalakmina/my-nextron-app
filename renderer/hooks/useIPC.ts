@@ -147,6 +147,31 @@ declare global {
         title: string;
         body: string;
       }) => Promise<{ success: boolean; error?: string }>;
+      getDailyIncome: () => Promise<{
+        success: boolean;
+        data?: Array<{
+          date: string;
+          total_transactions: number;
+          total_amount: number;
+          total_discount: number;
+          total_tax: number;
+        }>;
+        error?: string;
+      }>;
+      savePayment: (paymentDetails: {
+        order_id: string;
+        amount: number;
+        payment_method: string;
+        payment_date: string;
+        subtotal: number;
+        discount: number;
+        tax: number;
+        total: number;
+        amount_received: number;
+        change_amount: number;
+        status: string;
+        created_at: string;
+      }) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }
@@ -482,6 +507,33 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const savePayment = async (data: {
+    order_id: string;
+    amount: number;
+    payment_method: string;
+    payment_date: string;
+    subtotal: number;
+    discount: number;
+    tax: number;
+    total: number;
+    amount_received: number;
+    change_amount: number;
+    status: string;
+    created_at: string;
+  }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.savePayment(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to save payment");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
@@ -508,5 +560,6 @@ export function useIPC(options: UseIPCOptions = {}) {
     updateHoldOrder,
     getAllHoldOrders,
     deleteHoldOrder,
+    savePayment,
   };
 }
