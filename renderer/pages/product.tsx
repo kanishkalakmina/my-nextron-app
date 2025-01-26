@@ -642,7 +642,7 @@ const ProductPage = () => {
                                   src={
                                     productForm.image
                                       ? URL.createObjectURL(productForm.image)
-                                      : productForm.existingImagePath
+                                      : getImageUrl(productForm.existingImagePath || '')
                                   }
                                   alt="Product preview"
                                   className="w-full h-full object-cover"
