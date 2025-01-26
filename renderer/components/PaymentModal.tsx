@@ -180,6 +180,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         change_amount: getChange(),
         status: "paid",
         created_at: new Date().toISOString(),
+        orderItems,
       };
 
       const result = await window.electron.savePayment(paymentDetails);

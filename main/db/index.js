@@ -111,7 +111,19 @@ try {
       change_amount REAL,
       status TEXT DEFAULT 'completed',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
+    );
+
+    -- Create invoiced_item table if not exists
+    CREATE TABLE IF NOT EXISTS invoiced_item (
+      id TEXT PRIMARY KEY,
+      payment_id TEXT NOT NULL,
+      product_id TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      price REAL NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (payment_id) REFERENCES payments(id),
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    );
   `);
 
     // Enable foreign key support
@@ -264,7 +276,34 @@ const paymentQueries = {
     SELECT * FROM payments 
     WHERE order_id LIKE ? OR payment_method LIKE ? OR status LIKE ?
     ORDER BY created_at DESC
-  `)
+  `),
+};
+
+// Invoiced Item CRUD
+const invoicedItemQueries = {
+    create: db.prepare(`
+    INSERT INTO invoiced_item (id, payment_id, product_id, quantity, price)
+    VALUES (?, ?, ?, ?, ?)
+  `),
+    getAll: db.prepare(`
+    SELECT 
+      invoiced_item.*,
+      payments.order_id as order_id,
+      products.name as product_name
+    FROM invoiced_item 
+    LEFT JOIN payments ON invoiced_item.payment_id = payments.id
+    LEFT JOIN products ON invoiced_item.product_id = products.id
+    ORDER BY invoiced_item.created_at DESC
+  `),
+    getById: db.prepare("SELECT * FROM invoiced_item WHERE id = ?"),
+    getByPaymentId: db.prepare(`
+    SELECT 
+      invoiced_item.*,
+      products.name as product_name
+    FROM invoiced_item 
+    LEFT JOIN products ON invoiced_item.product_id = products.id
+    WHERE invoiced_item.payment_id = ?
+  `),
 };
 
 export {
@@ -273,4 +312,5 @@ export {
     orderQueries,
     holdOrderQueries,
     paymentQueries,
+    invoicedItemQueries,
 };

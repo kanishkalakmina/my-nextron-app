@@ -4,6 +4,7 @@ import {
     orderQueries,
     holdOrderQueries,
     paymentQueries,
+    invoicedItemQueries,
 } from "../db/index.js";
 import {
     app
@@ -654,9 +655,11 @@ const paymentHandlers = {
                 amount_received,
                 change_amount,
                 status,
-                created_at
+                created_at,
+                orderItems
             } = data;
 
+            // Save payment first
             paymentQueries.create.run(
                 id,
                 order_id,
@@ -672,6 +675,20 @@ const paymentHandlers = {
                 status,
                 created_at
             );
+
+            // Save each purchased item
+            if (orderItems && Array.isArray(orderItems)) {
+                for (const item of orderItems) {
+                    const invoicedItemId = generateUUID();
+                    invoicedItemQueries.create.run(
+                        invoicedItemId,
+                        id, // payment_id
+                        item.id, // product_id
+                        item.quantity,
+                        item.price
+                    );
+                }
+            }
             
             return {
                 success: true,
