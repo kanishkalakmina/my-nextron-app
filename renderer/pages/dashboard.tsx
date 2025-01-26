@@ -166,7 +166,10 @@ const DashboardPage = () => {
   };
 
   const handleNumberClick = (num: string) => {
-    setHoldReference(prev => prev + num);
+    // Only allow numeric input
+    if (/^\d$/.test(num)) {
+      setHoldReference(prev => prev + num);
+    }
   };
 
   const handleACClick = () => {
@@ -174,6 +177,12 @@ const DashboardPage = () => {
   };
 
   const handleHoldOrderSubmit = async () => {
+    // Validate that reference is numeric
+    if (!/^\d+$/.test(holdReference.trim())) {
+      toast.error('Reference number must contain only digits');
+      return;
+    }
+
     if (!holdReference.trim()) {
       alert('Please enter a reference number');
       return;
@@ -225,6 +234,31 @@ const DashboardPage = () => {
     } else {
       toast.error('Failed to hold order: ' + result.error);
     }
+  };
+
+  const handleCancelOrder = async () => {
+    if (recalledOrderId) {
+      try {
+        // Delete the recalled order
+        const result = await window.electron.deleteHoldOrder(recalledOrderId);
+        if (result.success) {
+          toast.success('Order cancelled successfully');
+        } else {
+          toast.error('Failed to cancel order: ' + result.error);
+          return;
+        }
+      } catch (error) {
+        console.error('Error cancelling order:', error);
+        toast.error('Failed to cancel order');
+        return;
+      }
+    }
+    
+    // Clear cart items and reset state
+    setOrderItems([]);
+    setDiscountValue("0");
+    setRecalledOrderId(null);
+    setHoldReference('');
   };
 
   // Calculate totals
@@ -455,7 +489,10 @@ const DashboardPage = () => {
                   </svg>
                   Hold
                 </button>
-                <button className="flex items-center justify-center gap-2 bg-[#F44336] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity">
+                <button 
+                  onClick={handleCancelOrder}
+                  className="flex items-center justify-center gap-2 bg-[#F44336] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity"
+                >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
                     <path d="M6 18L18 6M6 6l12 12" stroke="white" strokeWidth="2" strokeLinecap="round"/>
                   </svg>
@@ -497,12 +534,20 @@ const DashboardPage = () => {
             <div className="mb-6">
               <input
                 type="text"
+                pattern="\d*"
+                inputMode="numeric"
                 placeholder="Enter a reference"
                 className={`w-full p-3 border border-blue-300 rounded text-lg ${
                   recalledOrderId ? 'bg-gray-100 cursor-not-allowed' : ''
                 }`}
                 value={holdReference}
-                onChange={(e) => setHoldReference(e.target.value)}
+                onChange={(e) => {
+                  // Only allow numeric input
+                  const value = e.target.value;
+                  if (/^\d*$/.test(value)) {
+                    setHoldReference(value);
+                  }
+                }}
                 readOnly={recalledOrderId !== null}
               />
             </div>
