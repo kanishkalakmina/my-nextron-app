@@ -686,10 +686,16 @@ const paymentHandlers = {
     },
     getAllPayments: () => {
         try {
+            console.log("Getting all payments...");
             const payments = paymentQueries.getAll.all();
+            console.log("Retrieved payments:", payments);
+            if (!payments || payments.length === 0) {
+                console.log("No payments found in database");
+                return { success: true, data: [] };
+            }
             return { success: true, data: payments };
         } catch (error) {
-            console.error("Error fetching payments:", error);
+            console.error("Error in getAllPayments:", error);
             return { success: false, error: error.message };
         }
     },
@@ -720,7 +726,7 @@ const paymentHandlers = {
             console.error("Error searching payments:", error);
             return { success: false, error: error.message };
         }
-    }
+    },
 };
 
 export {

@@ -257,7 +257,24 @@ const paymentQueries = {
     INSERT INTO payments (id, order_id, amount, payment_method, payment_date, subtotal, discount, tax, total, amount_received, change_amount, status, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
-    getAll: db.prepare("SELECT * FROM payments ORDER BY created_at DESC"),
+    getAll: db.prepare(`
+        SELECT 
+            id,
+            order_id,
+            amount,
+            payment_method,
+            payment_date,
+            subtotal,
+            discount,
+            tax,
+            total,
+            amount_received,
+            change_amount,
+            status,
+            created_at
+        FROM payments 
+        ORDER BY payment_date DESC
+    `),
     getById: db.prepare("SELECT * FROM payments WHERE id = ?"),
     getByOrderId: db.prepare("SELECT * FROM payments WHERE order_id = ?"),
     searchPayments: db.prepare(`

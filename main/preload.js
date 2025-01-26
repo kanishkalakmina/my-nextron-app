@@ -299,4 +299,15 @@ contextBridge.exposeInMainWorld("electron", {
             };
         }
     },
+    getAllPayments: async () => {
+        try {
+            return await ipcRenderer.invoke("get-all-payments");
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
 });

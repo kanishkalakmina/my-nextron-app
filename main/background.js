@@ -82,6 +82,7 @@ const registerIpcHandlers = () => {
 
     // Payments
     ipcMain.handle("save-payment", paymentHandlers.savePayment);
+    ipcMain.handle("get-all-payments", paymentHandlers.getAllPayments);
 };
 
 (async () => {
