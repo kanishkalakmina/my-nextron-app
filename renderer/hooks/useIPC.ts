@@ -94,8 +94,8 @@ declare global {
       ) => Promise<{ success: boolean; orders?: any[]; error?: string }>;
 
       // Hold Orders
-      checkReference: (reference: string) => Promise<{ 
-        success: boolean; 
+      checkReference: (reference: string) => Promise<{
+        success: boolean;
         exists: boolean;
         error?: string;
       }>;
@@ -139,7 +139,14 @@ declare global {
         }>;
         error?: string;
       }>;
-      deleteHoldOrder: (id: string) => Promise<{ success: boolean; error?: string }>;
+      deleteHoldOrder: (
+        id: string
+      ) => Promise<{ success: boolean; error?: string }>;
+      // payment
+      showNotification: (data: {
+        title: string;
+        body: string;
+      }) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }
