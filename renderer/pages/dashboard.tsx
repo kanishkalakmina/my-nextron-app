@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
+import path from 'path';
 import { 
   MagnifyingGlassIcon, 
   UserPlusIcon, 
@@ -236,6 +237,17 @@ const DashboardPage = () => {
   const tax = afterDiscount * 0.18; // 18% tax
   const total = afterDiscount + tax;
 
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) return '';
+    
+    if (process.env.NODE_ENV === 'production') {
+      // Use custom protocol in production
+      return `upload://${path.basename(imagePath)}`;
+    }
+    // Use relative path in development
+    return imagePath;
+  };
+
   return (
     <Layout>
       <Head>
@@ -295,7 +307,7 @@ const DashboardPage = () => {
                     <div className="w-full h-25">
                       {product.image_path ? (
                         <img
-                          src={product.image_path}
+                          src={getImageUrl(product.image_path)}
                           alt={product.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
