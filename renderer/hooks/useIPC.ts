@@ -92,6 +92,54 @@ declare global {
       searchOrders: (
         searchTerm: string
       ) => Promise<{ success: boolean; orders?: any[]; error?: string }>;
+
+      // Hold Orders
+      checkReference: (reference: string) => Promise<{ 
+        success: boolean; 
+        exists: boolean;
+        error?: string;
+      }>;
+      createHoldOrder: (data: {
+        reference: string;
+        items: Array<{
+          id: string;
+          name: string;
+          price: number;
+          quantity: number;
+        }>;
+        total_items: number;
+        total_amount: number;
+      }) => Promise<{ success: boolean; id?: string; error?: string }>;
+      updateHoldOrder: (data: {
+        id: string;
+        reference: string;
+        items: Array<{
+          id: string;
+          name: string;
+          price: number;
+          quantity: number;
+        }>;
+        total_items: number;
+        total_amount: number;
+      }) => Promise<{ success: boolean; error?: string }>;
+      getAllHoldOrders: () => Promise<{
+        success: boolean;
+        orders?: Array<{
+          id: string;
+          reference: string;
+          items: Array<{
+            id: string;
+            name: string;
+            price: number;
+            quantity: number;
+          }>;
+          total_items: number;
+          total_amount: number;
+          created_at: string;
+        }>;
+        error?: string;
+      }>;
+      deleteHoldOrder: (id: string) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }
@@ -335,6 +383,98 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  // Hold Orders
+  const checkReference = async (reference: string) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.checkReference(reference);
+      if (!result.success) {
+        handleError(result.error || "Failed to check reference");
+        return { success: false, exists: false };
+      }
+      return result;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createHoldOrder = async (data: {
+    reference: string;
+    items: Array<{
+      id: string;
+      name: string;
+      price: number;
+      quantity: number;
+    }>;
+    total_items: number;
+    total_amount: number;
+  }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.createHoldOrder(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to create hold order");
+        return null;
+      }
+      return result.id;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateHoldOrder = async (data: {
+    id: string;
+    reference: string;
+    items: Array<{
+      id: string;
+      name: string;
+      price: number;
+      quantity: number;
+    }>;
+    total_items: number;
+    total_amount: number;
+  }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.updateHoldOrder(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to update hold order");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAllHoldOrders = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllHoldOrders();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch hold orders");
+        return [];
+      }
+      return result.orders;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteHoldOrder = async (id: string) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.deleteHoldOrder(id);
+      if (!result.success) {
+        handleError(result.error || "Failed to delete hold order");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
@@ -355,5 +495,11 @@ export function useIPC(options: UseIPCOptions = {}) {
     getAllOrders,
     getOrderById,
     updateOrderStatus,
+    // Hold Orders
+    checkReference,
+    createHoldOrder,
+    updateHoldOrder,
+    getAllHoldOrders,
+    deleteHoldOrder,
   };
 }
