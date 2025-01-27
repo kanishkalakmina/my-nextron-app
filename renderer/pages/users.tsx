@@ -50,6 +50,13 @@ const UsersPage = () => {
     role: "cashier",
     status: "active",
   });
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
+  const [userToResetPassword, setUserToResetPassword] = useState<User | null>(null);
+  const [resetPasswordForm, setResetPasswordForm] = useState({
+    adminPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
 
   useEffect(() => {
     loadUsers();
@@ -148,14 +155,20 @@ const UsersPage = () => {
     setIsDeleteModalOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
+  const handleDeleteConfirm = async (adminPassword: string) => {
     if (!userToDelete) return;
 
     try {
-      const result = await window.electron.deleteUser({ id: userToDelete.id });
+      const result = await window.electron.deleteUser({ 
+        id: userToDelete.id,
+        adminPassword
+      });
+      
       if (result.success) {
         toast.success("User deleted successfully");
         loadUsers();
+        setIsDeleteModalOpen(false);
+        setUserToDelete(null);
       } else {
         toast.error(result.error || "Failed to delete user");
       }
@@ -163,16 +176,37 @@ const UsersPage = () => {
       console.error("Error deleting user:", error);
       toast.error("Failed to delete user");
     }
-
-    setIsDeleteModalOpen(false);
-    setUserToDelete(null);
   };
 
   const handleResetPassword = async (user: User) => {
+    setUserToResetPassword(user);
+    setIsResetPasswordModalOpen(true);
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (resetPasswordForm.newPassword !== resetPasswordForm.confirmPassword) {
+      toast.error("New passwords don't match");
+      return;
+    }
+
     try {
-      const result = await window.electron.resetPassword({ id: user.id });
+      const result = await window.electron.resetPassword({
+        username: userToResetPassword?.username || '',
+        adminPassword: resetPasswordForm.adminPassword,
+        newPassword: resetPasswordForm.newPassword,
+        resetMethod: 'admin'
+      });
+
       if (result.success) {
-        toast.success("Password reset email sent");
+        toast.success("Password reset successfully");
+        setIsResetPasswordModalOpen(false);
+        setResetPasswordForm({
+          adminPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
       } else {
         toast.error(result.error || "Failed to reset password");
       }
@@ -451,11 +485,98 @@ const UsersPage = () => {
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setUserToDelete(null);
+        }}
         onConfirm={handleDeleteConfirm}
         title="Delete User"
         message="Are you sure you want to delete this user? This action cannot be undone."
       />
+
+      {/* Reset Password Modal */}
+      {isResetPasswordModalOpen && userToResetPassword && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+            <h2 className="text-2xl font-bold mb-6">Reset Password for {userToResetPassword.username}</h2>
+            <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Admin Password
+                </label>
+                <input
+                  type="password"
+                  value={resetPasswordForm.adminPassword}
+                  onChange={(e) =>
+                    setResetPasswordForm({
+                      ...resetPasswordForm,
+                      adminPassword: e.target.value,
+                    })
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  New Password
+                </label>
+                <input
+                  type="password"
+                  value={resetPasswordForm.newPassword}
+                  onChange={(e) =>
+                    setResetPasswordForm({
+                      ...resetPasswordForm,
+                      newPassword: e.target.value,
+                    })
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  value={resetPasswordForm.confirmPassword}
+                  onChange={(e) =>
+                    setResetPasswordForm({
+                      ...resetPasswordForm,
+                      confirmPassword: e.target.value,
+                    })
+                  }
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsResetPasswordModalOpen(false);
+                    setResetPasswordForm({
+                      adminPassword: '',
+                      newPassword: '',
+                      confirmPassword: ''
+                    });
+                  }}
+                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+                >
+                  Reset Password
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

@@ -2,8 +2,8 @@ import Database from "better-sqlite3";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-const bcrypt = require('bcrypt');
-const { v4: uuidv4 } = require('uuid');
+import bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,14 +30,13 @@ if (isProd) {
   const dbDir = path.dirname(dbPath);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
-    console.log("Created database directory:", dbDir);
   }
 }
 
-let db;
-try {
-  db = new Database(dbPath);
+// Initialize database connection
+const db = new Database(dbPath);
 
+try {
   // Initialize tables only if they don't exist
   db.exec(`
     -- Create categories table if not exists
@@ -111,25 +110,23 @@ try {
     ) VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  (async () => {
-    const hashedPassword = await bcrypt.hash('admin@123', 10);
-    createDefaultAdmin.run(
-      uuidv4(),
-      'admin',
-      hashedPassword,
-      'System Administrator',
-      'admin@system.com',
-      'admin',
-      'active'
-    );
-  })();
+  const hashedPassword = bcrypt.hashSync('admin@123', 10);
+  createDefaultAdmin.run(
+    uuidv4(),
+    'admin',
+    hashedPassword,
+    'System Administrator',
+    'admin@system.com',
+    'admin',
+    'active'
+  );
 
   // Enable foreign key support
   db.exec("PRAGMA foreign_keys = ON;");
   
   console.log("Database initialized successfully at:", dbPath);
 } catch (error) {
-  console.error("Database initialization error:", error);
+  console.error('Error initializing database:', error);
   throw error;
 }
 
@@ -292,4 +289,10 @@ const userQueries = {
   `),
 };
 
-export { categoryQueries, productQueries, orderQueries, userQueries };
+export {
+  db,
+  categoryQueries,
+  productQueries,
+  orderQueries,
+  userQueries
+};

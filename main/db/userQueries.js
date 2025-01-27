@@ -2,8 +2,8 @@ import { db } from './index.js';
 
 export const userQueries = {
   create: db.prepare(`
-    INSERT INTO users (username, password, full_name, email, phone, role, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (id, username, password, full_name, email, phone, role, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `),
   getAll: db.prepare("SELECT * FROM users ORDER BY created_at DESC"),
   getById: db.prepare("SELECT * FROM users WHERE id = ?"),

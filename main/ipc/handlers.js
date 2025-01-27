@@ -319,10 +319,11 @@ import { userQueries } from "../db/userQueries.js";
 const userHandlers = {
   createUser: async (event, data) => {
     try {
-      const { username, password, fullName, email, phone, role, status } = data;
+      const { username, password, full_name, email, phone, role, status } = data;
       const hashedPassword = await bcrypt.hash(password, 10);
+      const id = generateUUID();
       
-      userQueries.create.run(username, hashedPassword, fullName, email, phone, role, status);
+      userQueries.create.run(id, username, hashedPassword, full_name, email, phone, role, status);
       return { success: true };
     } catch (error) {
       console.error("Error in createUser:", error);
@@ -347,8 +348,8 @@ const userHandlers = {
 
   updateUser: async (event, data) => {
     try {
-      const { id, username, fullName, email, phone, role, status } = data;
-      userQueries.update.run(username, fullName, email, phone, role, status, id);
+      const { id, username, full_name, email, phone, role, status } = data;
+      userQueries.update.run(username, full_name, email, phone, role, status, id);
       return { success: true };
     } catch (error) {
       console.error("Error in updateUser:", error);
@@ -356,8 +357,28 @@ const userHandlers = {
     }
   },
 
-  deleteUser: async (event, id) => {
+  deleteUser: async (event, data) => {
     try {
+      const { id, adminPassword } = data;
+
+      // Get admin user and verify admin password
+      const admin = userQueries.getByUsername.get('admin');
+      if (!admin) {
+        return { success: false, error: "Admin account not found" };
+      }
+
+      const isValidAdminPassword = await bcrypt.compare(adminPassword, admin.password);
+      if (!isValidAdminPassword) {
+        return { success: false, error: "Admin password is incorrect" };
+      }
+
+      // Prevent deleting the admin user
+      const userToDelete = userQueries.getById.get(id);
+      if (userToDelete && userToDelete.username === 'admin') {
+        return { success: false, error: "Cannot delete the admin user" };
+      }
+
+      // Delete the user
       userQueries.delete.run(id);
       return { success: true };
     } catch (error) {

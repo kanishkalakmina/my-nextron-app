@@ -154,11 +154,46 @@ contextBridge.exposeInMainWorld('electron', {
   },
 
   // User management
-  createUser: (data) => ipcRenderer.invoke('createUser', data),
-  getAllUsers: () => ipcRenderer.invoke('getAllUsers'),
-  updateUser: (data) => ipcRenderer.invoke('updateUser', data),
-  deleteUser: (data) => ipcRenderer.invoke('deleteUser', data),
-  resetPassword: (data) => ipcRenderer.invoke('resetPassword', data),
+  createUser: async (data) => {
+    try {
+      return await ipcRenderer.invoke('createUser', data);
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+  getAllUsers: async () => {
+    try {
+      return await ipcRenderer.invoke('getAllUsers');
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+  updateUser: async (data) => {
+    try {
+      return await ipcRenderer.invoke('updateUser', data);
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+  deleteUser: async (data) => {
+    try {
+      return await ipcRenderer.invoke('deleteUser', data);
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+  resetPassword: async (data) => {
+    try {
+      return await ipcRenderer.invoke('resetUserPassword', data);
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  },
   validateResetToken: (data) => ipcRenderer.invoke('validateResetToken', data),
   resetUserPassword: (data) => ipcRenderer.invoke('resetUserPassword', data),
 });
