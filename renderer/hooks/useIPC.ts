@@ -172,6 +172,60 @@ declare global {
         status: string;
         created_at: string;
       }) => Promise<{ success: boolean; error?: string }>;
+
+      // User management
+      createUser: (data: {
+        username: string;
+        password: string;
+        full_name: string;
+        role_id: string;
+        status: "active" | "inactive" | "suspended";
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      getAllUsers: () => Promise<{
+        success: boolean;
+        users?: Array<{
+          id: string;
+          username: string;
+          full_name: string;
+          role_id: string;
+          role_name: string;
+          status: "active" | "inactive" | "suspended";
+          last_login?: string;
+          created_at: string;
+        }>;
+        error?: string;
+      }>;
+
+      updateUser: (data: {
+        id: string;
+        username: string;
+        password?: string;
+        full_name: string;
+        role_id: string;
+        status: "active" | "inactive" | "suspended";
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      deleteUser: (data: {
+        id: string;
+        adminPassword: string;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      resetPassword: (data: {
+        id: string;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      validateResetToken: (data: { token: string }) => Promise<{
+        success: boolean;
+        userId?: string;
+        error?: string;
+      }>;
+
+      getAllRoles: () => Promise<{
+        success: boolean;
+        roles?: any[];
+        error?: string;
+      }>;
     };
   }
 }
@@ -507,6 +561,105 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  // User management
+  const createUser = async (data: any) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.createUser(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to create user");
+        return null;
+      }
+      return result;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAllUsers = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllUsers();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch users");
+        return [];
+      }
+      return result.users;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUser = async (data: any) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.updateUser(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to update user");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteUser = async (data: { id: string; adminPassword: string }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.deleteUser(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to delete user");
+        return null;
+      }
+      return result.success;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (data: any) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.resetPassword(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to reset password");
+        return null;
+      }
+      return result.success;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const validateResetToken = async (data: { token: string }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.validateResetToken(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to validate reset token");
+        return null;
+      }
+      return result;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAllRoles = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllRoles();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch roles");
+        return [];
+      }
+      return result.roles;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const savePayment = async (data: {
     order_id: string;
     amount: number;
@@ -561,5 +714,14 @@ export function useIPC(options: UseIPCOptions = {}) {
     getAllHoldOrders,
     deleteHoldOrder,
     savePayment,
+
+    // User management
+    createUser,
+    getAllUsers,
+    updateUser,
+    deleteUser,
+    resetPassword,
+    validateResetToken,
+    getAllRoles,
   };
 }
