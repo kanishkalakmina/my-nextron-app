@@ -794,6 +794,108 @@ const paymentHandlers = {
     }
   },
 };
+// Hold Orders handlers
+const holdOrderHandlers = {
+  checkReference: async (event, { reference }) => {
+    try {
+      const result = holdOrderQueries.checkReference.get(reference);
+      return {
+        success: true,
+        exists: result.count > 0,
+      };
+    } catch (error) {
+      console.error("Error checking reference:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+
+  createHoldOrder: async (
+    event,
+    { reference, items, total_items, total_amount }
+  ) => {
+    try {
+      const id = generateUUID();
+      holdOrderQueries.create.run(
+        id,
+        reference,
+        JSON.stringify(items),
+        total_items,
+        total_amount
+      );
+      return {
+        success: true,
+        id,
+      };
+    } catch (error) {
+      console.error("Error creating held order:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+
+  updateHoldOrder: async (
+    event,
+    { id, reference, items, total_items, total_amount }
+  ) => {
+    try {
+      holdOrderQueries.update.run(
+        reference,
+        JSON.stringify(items),
+        total_items,
+        total_amount,
+        id
+      );
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error("Error updating held order:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+
+  getAllHoldOrders: async () => {
+    try {
+      const orders = holdOrderQueries.getAll.all().map((order) => ({
+        ...order,
+        items: JSON.parse(order.items),
+      }));
+      return {
+        success: true,
+        orders,
+      };
+    } catch (error) {
+      console.error("Error getting held orders:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+
+  deleteHoldOrder: async (event, { id }) => {
+    try {
+      holdOrderQueries.delete.run(id);
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error("Error deleting held order:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+};
 export {
   categoryHandlers,
   productHandlers,
