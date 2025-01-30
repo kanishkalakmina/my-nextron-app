@@ -231,6 +231,14 @@ declare global {
         roles?: any[];
         error?: string;
       }>;
+
+      resetPassword: (data: {
+        username: string;
+        newPassword: string;
+        adminPassword: string;
+        resetMethod: "admin" | "self";
+        currentPassword?: string;
+      }) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }

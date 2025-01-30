@@ -4,7 +4,8 @@ interface DeleteConfirmationModalProps {
   isOpen: boolean;
   title: string;
   message: string;
-  onConfirm: (adminPassword: string) => void;
+  requireAdminPassword?: boolean;
+  onConfirm: (adminPassword?: string) => void;
   onCancel: () => void;
 }
 
@@ -12,6 +13,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   isOpen,
   title,
   message,
+  requireAdminPassword = false,
   onConfirm,
   onCancel,
 }) => {
@@ -20,7 +22,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   if (!isOpen) return null;
 
   const handleConfirm = () => {
-    onConfirm(adminPassword);
+    onConfirm(requireAdminPassword ? adminPassword : undefined);
     setAdminPassword("");
   };
 
@@ -62,18 +64,21 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
               </h3>
               <div className="mt-2">
                 <p className="text-sm text-gray-500">{message}</p>
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Admin Password
-                  </label>
-                  <input
-                    type="password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                  />
-                </div>
+                {requireAdminPassword && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Admin Password
+                    </label>
+                    <input
+                      type="password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      className="block w-full rounded-md border-0 py-3 px-4 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+                      placeholder="Enter admin password"
+                      required
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>

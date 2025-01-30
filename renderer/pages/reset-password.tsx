@@ -22,7 +22,7 @@ const ResetPassword = () => {
     }
 
     try {
-      const result = await window.electron.resetUserPassword({
+      const result = await window.electron.resetPassword({
         username,
         currentPassword: resetMethod === 'self' ? currentPassword : undefined,
         adminPassword: resetMethod === 'admin' ? adminPassword : undefined,
