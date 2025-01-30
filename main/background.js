@@ -80,10 +80,10 @@ const registerIpcHandlers = () => {
   registerIpcHandlers();
 
   if (isProd) {
-    await mainWindow.loadURL("app://./dashboard");
+    await mainWindow.loadURL("app://./login");
   } else {
     const port = process.argv[2];
-    await mainWindow.loadURL(`http://localhost:${port}/dashboard`);
+    await mainWindow.loadURL(`http://localhost:${port}/login`);
     // mainWindow.webContents.openDevTools()
   }
 })();
