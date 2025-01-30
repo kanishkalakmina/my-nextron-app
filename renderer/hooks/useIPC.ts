@@ -98,10 +98,8 @@ declare global {
         username: string;
         password: string;
         full_name: string;
-        email: string;
-        phone?: string;
-        role: 'admin' | 'cashier' | 'manager';
-        status: 'active' | 'inactive' | 'suspended';
+        role_id: string;
+        status: "active" | "inactive" | "suspended";
       }) => Promise<{ success: boolean; error?: string }>;
 
       getAllUsers: () => Promise<{
@@ -110,10 +108,9 @@ declare global {
           id: string;
           username: string;
           full_name: string;
-          email: string;
-          phone?: string;
-          role: 'admin' | 'cashier' | 'manager';
-          status: 'active' | 'inactive' | 'suspended';
+          role_id: string;
+          role_name: string;
+          status: "active" | "inactive" | "suspended";
           last_login?: string;
           created_at: string;
         }>;
@@ -125,19 +122,28 @@ declare global {
         username: string;
         password?: string;
         full_name: string;
-        email: string;
-        phone?: string;
-        role: 'admin' | 'cashier' | 'manager';
-        status: 'active' | 'inactive' | 'suspended';
+        role_id: string;
+        status: "active" | "inactive" | "suspended";
       }) => Promise<{ success: boolean; error?: string }>;
 
-      deleteUser: (data: { id: string }) => Promise<{ success: boolean; error?: string }>;
+      deleteUser: (data: {
+        id: string;
+        adminPassword: string;
+      }) => Promise<{ success: boolean; error?: string }>;
 
-      resetPassword: (data: { id: string }) => Promise<{ success: boolean; error?: string }>;
+      resetPassword: (data: {
+        id: string;
+      }) => Promise<{ success: boolean; error?: string }>;
 
       validateResetToken: (data: { token: string }) => Promise<{
         success: boolean;
         userId?: string;
+        error?: string;
+      }>;
+
+      getAllRoles: () => Promise<{
+        success: boolean;
+        roles?: any[];
         error?: string;
       }>;
     };
@@ -384,15 +390,7 @@ export function useIPC(options: UseIPCOptions = {}) {
   };
 
   // User management
-  const createUser = async (data: {
-    username: string;
-    password: string;
-    full_name: string;
-    email: string;
-    phone?: string;
-    role: 'admin' | 'cashier' | 'manager';
-    status: 'active' | 'inactive' | 'suspended';
-  }) => {
+  const createUser = async (data: any) => {
     setLoading(true);
     try {
       const result = await window.electron.createUser(data);
@@ -420,16 +418,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
-  const updateUser = async (data: {
-    id: string;
-    username: string;
-    password?: string;
-    full_name: string;
-    email: string;
-    phone?: string;
-    role: 'admin' | 'cashier' | 'manager';
-    status: 'active' | 'inactive' | 'suspended';
-  }) => {
+  const updateUser = async (data: any) => {
     setLoading(true);
     try {
       const result = await window.electron.updateUser(data);
@@ -443,7 +432,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
-  const deleteUser = async (data: { id: string }) => {
+  const deleteUser = async (data: { id: string; adminPassword: string }) => {
     setLoading(true);
     try {
       const result = await window.electron.deleteUser(data);
@@ -457,7 +446,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
-  const resetPassword = async (data: { id: string }) => {
+  const resetPassword = async (data: any) => {
     setLoading(true);
     try {
       const result = await window.electron.resetPassword(data);
@@ -480,6 +469,20 @@ export function useIPC(options: UseIPCOptions = {}) {
         return null;
       }
       return result;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAllRoles = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllRoles();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch roles");
+        return [];
+      }
+      return result.roles;
     } finally {
       setLoading(false);
     }
@@ -512,5 +515,6 @@ export function useIPC(options: UseIPCOptions = {}) {
     deleteUser,
     resetPassword,
     validateResetToken,
+    getAllRoles,
   };
 }

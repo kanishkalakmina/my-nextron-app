@@ -196,4 +196,14 @@ contextBridge.exposeInMainWorld('electron', {
   },
   validateResetToken: (data) => ipcRenderer.invoke('validateResetToken', data),
   resetUserPassword: (data) => ipcRenderer.invoke('resetUserPassword', data),
+
+  // Roles
+  getAllRoles: async () => {
+    try {
+      return await ipcRenderer.invoke('get-all-roles');
+    } catch (error) {
+      console.error('IPC Error:', error);
+      return { success: false, error: error.message };
+    }
+  }
 });

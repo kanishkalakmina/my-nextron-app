@@ -16,22 +16,25 @@ interface User {
   id: string;
   username: string;
   full_name: string;
-  email: string;
-  phone: string;
-  role: "admin" | "cashier" | "manager";
+  role_id: string;
   status: "active" | "inactive" | "suspended";
-  last_login: string;
+  last_login?: string;
   created_at: string;
+  updated_at?: string;
 }
 
-interface UserForm {
+interface NewUser {
   username: string;
   password: string;
   full_name: string;
-  email: string;
-  phone: string;
-  role: "admin" | "cashier" | "manager";
+  role_id: string;
   status: "active" | "inactive" | "suspended";
+}
+
+interface Role {
+  role_id: string;
+  role_name: string;
+  role_permissions: string;
 }
 
 const UsersPage = () => {
@@ -41,25 +44,28 @@ const UsersPage = () => {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
-  const [userForm, setUserForm] = useState<UserForm>({
+  const [newUser, setNewUser] = useState<NewUser>({
     username: "",
     password: "",
     full_name: "",
-    email: "",
-    phone: "",
-    role: "cashier",
+    role_id: "",
     status: "active",
   });
-  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
-  const [userToResetPassword, setUserToResetPassword] = useState<User | null>(null);
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] =
+    useState(false);
+  const [userToResetPassword, setUserToResetPassword] = useState<User | null>(
+    null
+  );
   const [resetPasswordForm, setResetPasswordForm] = useState({
-    adminPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    adminPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
+  const [roles, setRoles] = useState<Role[]>([]);
 
   useEffect(() => {
     loadUsers();
+    loadRoles();
   }, []);
 
   const loadUsers = async () => {
@@ -76,27 +82,39 @@ const UsersPage = () => {
     }
   };
 
+  const loadRoles = async () => {
+    try {
+      const result = await window.electron.getAllRoles();
+      console.log("Roles result:", result);
+      if (result.success) {
+        setRoles(result.roles);
+        console.log("Loaded roles:", result.roles);
+      } else {
+        toast.error(result.error || "Failed to load roles");
+      }
+    } catch (error) {
+      console.error("Error loading roles:", error);
+      toast.error("Error loading roles");
+    }
+  };
+
   const handleOpenModal = (user: User | null = null) => {
     if (user) {
       setEditingUser(user);
-      setUserForm({
+      setNewUser({
         username: user.username,
         password: "", // Don't load existing password
         full_name: user.full_name,
-        email: user.email,
-        phone: user.phone || "",
-        role: user.role,
+        role_id: user.role_id,
         status: user.status,
       });
     } else {
       setEditingUser(null);
-      setUserForm({
+      setNewUser({
         username: "",
         password: "",
         full_name: "",
-        email: "",
-        phone: "",
-        role: "cashier",
+        role_id: "",
         status: "active",
       });
     }
@@ -106,13 +124,11 @@ const UsersPage = () => {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingUser(null);
-    setUserForm({
+    setNewUser({
       username: "",
       password: "",
       full_name: "",
-      email: "",
-      phone: "",
-      role: "cashier",
+      role_id: "",
       status: "active",
     });
   };
@@ -123,7 +139,7 @@ const UsersPage = () => {
       if (editingUser) {
         const result = await window.electron.updateUser({
           id: editingUser.id,
-          ...userForm,
+          ...newUser,
         });
 
         if (result.success) {
@@ -134,7 +150,7 @@ const UsersPage = () => {
           toast.error(result.error || "Failed to update user");
         }
       } else {
-        const result = await window.electron.createUser(userForm);
+        const result = await window.electron.createUser(newUser);
 
         if (result.success) {
           toast.success("User created successfully");
@@ -159,11 +175,11 @@ const UsersPage = () => {
     if (!userToDelete) return;
 
     try {
-      const result = await window.electron.deleteUser({ 
+      const result = await window.electron.deleteUser({
         id: userToDelete.id,
-        adminPassword
+        adminPassword,
       });
-      
+
       if (result.success) {
         toast.success("User deleted successfully");
         loadUsers();
@@ -185,7 +201,7 @@ const UsersPage = () => {
 
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (resetPasswordForm.newPassword !== resetPasswordForm.confirmPassword) {
       toast.error("New passwords don't match");
       return;
@@ -193,19 +209,19 @@ const UsersPage = () => {
 
     try {
       const result = await window.electron.resetPassword({
-        username: userToResetPassword?.username || '',
+        username: userToResetPassword ? userToResetPassword.username : "",
         adminPassword: resetPasswordForm.adminPassword,
         newPassword: resetPasswordForm.newPassword,
-        resetMethod: 'admin'
+        resetMethod: "admin",
       });
 
       if (result.success) {
         toast.success("Password reset successfully");
         setIsResetPasswordModalOpen(false);
         setResetPasswordForm({
-          adminPassword: '',
-          newPassword: '',
-          confirmPassword: ''
+          adminPassword: "",
+          newPassword: "",
+          confirmPassword: "",
         });
       } else {
         toast.error(result.error || "Failed to reset password");
@@ -219,9 +235,28 @@ const UsersPage = () => {
   const filteredUsers = users.filter(
     (user) =>
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      user.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+    setNewUser((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const resetForm = () => {
+    setNewUser({
+      username: "",
+      password: "",
+      full_name: "",
+      role_id: "",
+      status: "active",
+    });
+  };
 
   return (
     <Layout>
@@ -254,84 +289,99 @@ const UsersPage = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-x-auto">
-          <table className="min-w-full">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
+        <div className="bg-white rounded-lg shadow overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Username
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Full Name
+                </th>
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Last Login
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user) => (
+              {filteredUsers.map((user: any) => (
                 <tr key={user.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.full_name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {user.email}
-                        </div>
-                      </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="text-sm text-gray-900">{user.username}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="text-sm text-gray-900">
+                      {user.full_name}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                      {user.role}
+                      {user.role_name}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         user.status === "active"
                           ? "bg-green-100 text-green-800"
                           : user.status === "inactive"
-                          ? "bg-gray-100 text-gray-800"
-                          : "bg-red-100 text-red-800"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-yellow-100 text-yellow-800"
                       }`}
                     >
                       {user.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.last_login
-                      ? new Date(user.last_login).toLocaleString()
-                      : "Never"}
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div className="text-sm text-gray-900">
+                      {user.last_login
+                        ? new Date(user.last_login).toLocaleString()
+                        : "Never"}
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button
-                      onClick={() => handleOpenModal(user)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-4"
-                    >
-                      <PencilSquareIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleResetPassword(user)}
-                      className="text-yellow-600 hover:text-yellow-900 mr-4"
-                    >
-                      <KeyIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(user)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex justify-center items-center space-x-3">
+                      <button
+                        onClick={() => handleOpenModal(user)}
+                        className="inline-flex items-center px-2.5 py-1.5 border border-indigo-500 text-indigo-600 hover:bg-indigo-50 rounded-md transition duration-150 ease-in-out"
+                        title="Edit user"
+                      >
+                        <PencilSquareIcon className="h-4 w-4 mr-1" />
+                        <span>Edit</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setUserToResetPassword(user);
+                          setIsResetPasswordModalOpen(true);
+                        }}
+                        className="inline-flex items-center px-2.5 py-1.5 border border-blue-500 text-blue-600 hover:bg-blue-50 rounded-md transition duration-150 ease-in-out"
+                        title="Reset password"
+                      >
+                        <KeyIcon className="h-4 w-4 mr-1" />
+                        <span>Reset</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setUserToDelete(user);
+                          setIsDeleteModalOpen(true);
+                        }}
+                        className="inline-flex items-center px-2.5 py-1.5 border border-red-500 text-red-600 hover:bg-red-50 rounded-md transition duration-150 ease-in-out"
+                        title="Delete user"
+                      >
+                        <TrashIcon className="h-4 w-4 mr-1" />
+                        <span>Delete</span>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -340,141 +390,128 @@ const UsersPage = () => {
         </div>
       </div>
 
-      {/* User Form Modal */}
+      {/* Create/Edit User Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-6">
-              {editingUser ? "Edit User" : "Add User"}
-            </h2>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Username
-                  </label>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full transform transition-all">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                {editingUser ? "Edit User" : "Create New User"}
+              </h2>
+              <button
+                onClick={() => {
+                  setIsModalOpen(false);
+                  resetForm();
+                }}
+                className="text-gray-400 hover:text-gray-500 transition-colors"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Username
+                </label>
+                <div className="relative">
                   <input
                     type="text"
-                    value={userForm.username}
-                    onChange={(e) =>
-                      setUserForm({ ...userForm, username: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    name="username"
+                    value={newUser.username}
+                    onChange={handleInputChange}
+                    className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm transition-colors"
                     required
+                    placeholder="Enter username"
                   />
-                </div>
-                {!editingUser && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      value={userForm.password}
-                      onChange={(e) =>
-                        setUserForm({ ...userForm, password: e.target.value })
-                      }
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      required={!editingUser}
-                    />
-                  </div>
-                )}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={userForm.full_name}
-                    onChange={(e) =>
-                      setUserForm({ ...userForm, full_name: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={userForm.email}
-                    onChange={(e) =>
-                      setUserForm({ ...userForm, email: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    value={userForm.phone}
-                    onChange={(e) =>
-                      setUserForm({ ...userForm, phone: e.target.value })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Role
-                  </label>
-                  <select
-                    value={userForm.role}
-                    onChange={(e) =>
-                      setUserForm({
-                        ...userForm,
-                        role: e.target.value as "admin" | "cashier" | "manager",
-                      })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  >
-                    <option value="cashier">Cashier</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Status
-                  </label>
-                  <select
-                    value={userForm.status}
-                    onChange={(e) =>
-                      setUserForm({
-                        ...userForm,
-                        status: e.target.value as
-                          | "active"
-                          | "inactive"
-                          | "suspended",
-                      })
-                    }
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="suspended">Suspended</option>
-                  </select>
                 </div>
               </div>
-              <div className="mt-6 flex justify-end space-x-3">
+              {!editingUser && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      name="password"
+                      value={newUser.password}
+                      onChange={handleInputChange}
+                      className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm transition-colors"
+                      required={!editingUser}
+                      placeholder="Enter password"
+                    />
+                  </div>
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="full_name"
+                    value={newUser.full_name}
+                    onChange={handleInputChange}
+                    className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm transition-colors"
+                    required
+                    placeholder="Enter full name"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Role
+                </label>
+                <select
+                  name="role_id"
+                  value={newUser.role_id}
+                  onChange={handleInputChange}
+                  className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm transition-colors"
+                  required
+                >
+                  <option value="">Select Role</option>
+                  {roles.map((role) => (
+                    <option key={role.role_id} value={role.role_id}>
+                      {role.role_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Status
+                </label>
+                <select
+                  name="status"
+                  value={newUser.status}
+                  onChange={handleInputChange}
+                  className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 sm:text-sm transition-colors"
+                  required
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="suspended">Suspended</option>
+                </select>
+              </div>
+              <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
                 <button
                   type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-50"
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    resetForm();
+                  }}
+                  className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500/20 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                  className="px-4 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-colors"
                 >
-                  {editingUser ? "Update" : "Create"}
+                  {editingUser ? "Update User" : "Create User"}
                 </button>
               </div>
             </form>
@@ -496,79 +533,110 @@ const UsersPage = () => {
 
       {/* Reset Password Modal */}
       {isResetPasswordModalOpen && userToResetPassword && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-6">Reset Password for {userToResetPassword.username}</h2>
-            <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full transform transition-all">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <h2 className="text-2xl font-bold text-gray-900">Reset Password</h2>
+                <p className="mt-1 text-sm text-gray-500">
+                  Resetting password for user: <span className="font-medium">{userToResetPassword.username}</span>
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsResetPasswordModalOpen(false);
+                  setResetPasswordForm({
+                    adminPassword: "",
+                    newPassword: "",
+                    confirmPassword: "",
+                  });
+                }}
+                className="text-gray-400 hover:text-gray-500 transition-colors"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={handleResetPasswordSubmit} className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Admin Password
                 </label>
-                <input
-                  type="password"
-                  value={resetPasswordForm.adminPassword}
-                  onChange={(e) =>
-                    setResetPasswordForm({
-                      ...resetPasswordForm,
-                      adminPassword: e.target.value,
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={resetPasswordForm.adminPassword}
+                    onChange={(e) =>
+                      setResetPasswordForm({
+                        ...resetPasswordForm,
+                        adminPassword: e.target.value,
+                      })
+                    }
+                    className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 sm:text-sm transition-colors"
+                    required
+                    placeholder="Enter your admin password"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   New Password
                 </label>
-                <input
-                  type="password"
-                  value={resetPasswordForm.newPassword}
-                  onChange={(e) =>
-                    setResetPasswordForm({
-                      ...resetPasswordForm,
-                      newPassword: e.target.value,
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={resetPasswordForm.newPassword}
+                    onChange={(e) =>
+                      setResetPasswordForm({
+                        ...resetPasswordForm,
+                        newPassword: e.target.value,
+                      })
+                    }
+                    className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 sm:text-sm transition-colors"
+                    required
+                    placeholder="Enter new password"
+                  />
+                </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Confirm New Password
                 </label>
-                <input
-                  type="password"
-                  value={resetPasswordForm.confirmPassword}
-                  onChange={(e) =>
-                    setResetPasswordForm({
-                      ...resetPasswordForm,
-                      confirmPassword: e.target.value,
-                    })
-                  }
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    type="password"
+                    value={resetPasswordForm.confirmPassword}
+                    onChange={(e) =>
+                      setResetPasswordForm({
+                        ...resetPasswordForm,
+                        confirmPassword: e.target.value,
+                      })
+                    }
+                    className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 sm:text-sm transition-colors"
+                    required
+                    placeholder="Confirm new password"
+                  />
+                </div>
               </div>
-              <div className="flex justify-end space-x-3 mt-6">
+              <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
                 <button
                   type="button"
                   onClick={() => {
                     setIsResetPasswordModalOpen(false);
                     setResetPasswordForm({
-                      adminPassword: '',
-                      newPassword: '',
-                      confirmPassword: ''
+                      adminPassword: "",
+                      newPassword: "",
+                      confirmPassword: "",
                     });
                   }}
-                  className="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg"
+                  className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500/20 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+                  className="px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
                 >
                   Reset Password
                 </button>

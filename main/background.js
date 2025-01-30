@@ -7,7 +7,8 @@ import {
   productHandlers,
   orderHandlers,
   userHandlers,
-} from "./ipc/handlers";
+  roleHandlers
+} from "./ipc/handlers.js";
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -53,11 +54,14 @@ const registerIpcHandlers = () => {
   ipcMain.handle("search-orders", orderHandlers.searchOrders);
 
   // User management
-  ipcMain.handle('createUser', userHandlers.createUser);
   ipcMain.handle('getAllUsers', userHandlers.getAllUsers);
-  ipcMain.handle('updateUser', userHandlers.updateUser);
-  ipcMain.handle('deleteUser', userHandlers.deleteUser);
-  ipcMain.handle('resetUserPassword', userHandlers.resetUserPassword);
+  ipcMain.handle('createUser', (event, data) => userHandlers.createUser(event, data));
+  ipcMain.handle('updateUser', (event, data) => userHandlers.updateUser(event, data));
+  ipcMain.handle('deleteUser', (event, data) => userHandlers.deleteUser(event, data));
+  ipcMain.handle('resetPassword', (event, data) => userHandlers.resetUserPassword(event, data));
+
+  // Role handlers
+  ipcMain.handle('get-all-roles', roleHandlers.getAllRoles);
 };
 
 (async () => {
