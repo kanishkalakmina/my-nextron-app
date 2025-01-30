@@ -669,6 +669,131 @@ const userHandlers = {
     }
   },
 };
+// Payments handlers
+const paymentHandlers = {
+  savePayment: async (event, data) => {
+    try {
+      const {
+        id,
+        order_id,
+        amount,
+        payment_method,
+        payment_date,
+        subtotal,
+        discount,
+        tax,
+        total,
+        amount_received,
+        change_amount,
+        status,
+        created_at,
+        orderItems,
+      } = data;
+
+      // Save payment first
+      paymentQueries.create.run(
+        id,
+        order_id,
+        amount,
+        payment_method,
+        payment_date,
+        subtotal,
+        discount,
+        tax,
+        total,
+        amount_received,
+        change_amount,
+        status,
+        created_at
+      );
+
+      // Save each purchased item
+      if (orderItems && Array.isArray(orderItems)) {
+        for (const item of orderItems) {
+          const invoicedItemId = generateUUID();
+          invoicedItemQueries.create.run(
+            invoicedItemId,
+            id, // payment_id
+            item.id, // product_id
+            item.quantity,
+            item.price
+          );
+        }
+      }
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error("Error saving payment:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+  getAllPayments: () => {
+    try {
+      const payments = paymentQueries.getAll.all();
+      return {
+        success: true,
+        data: payments,
+      };
+    } catch (error) {
+      console.error("Error fetching payments:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+  getPaymentById: (event, { id }) => {
+    try {
+      const payment = paymentQueries.getById.get(id);
+      return {
+        success: true,
+        data: payment,
+      };
+    } catch (error) {
+      console.error("Error fetching payment:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+  getPaymentByOrderId: (event, { orderId }) => {
+    try {
+      const payment = paymentQueries.getByOrderId.get(orderId);
+      return {
+        success: true,
+        data: payment,
+      };
+    } catch (error) {
+      console.error("Error fetching payment by order:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+  searchPayments: (event, { searchTerm }) => {
+    try {
+      const term = `%${searchTerm}%`;
+      const payments = paymentQueries.searchPayments.all(term, term, term);
+      return {
+        success: true,
+        data: payments,
+      };
+    } catch (error) {
+      console.error("Error searching payments:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+};
 export {
   categoryHandlers,
   productHandlers,
