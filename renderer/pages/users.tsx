@@ -405,8 +405,18 @@ const UsersPage = () => {
                 }}
                 className="text-gray-400 hover:text-gray-500 transition-colors"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -537,9 +547,14 @@ const UsersPage = () => {
           <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full transform transition-all">
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Reset Password</h2>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Reset Password
+                </h2>
                 <p className="mt-1 text-sm text-gray-500">
-                  Resetting password for user: <span className="font-medium">{userToResetPassword.username}</span>
+                  Resetting password for user:{" "}
+                  <span className="font-medium">
+                    {userToResetPassword.username}
+                  </span>
                 </p>
               </div>
               <button
@@ -553,8 +568,18 @@ const UsersPage = () => {
                 }}
                 className="text-gray-400 hover:text-gray-500 transition-colors"
               >
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
