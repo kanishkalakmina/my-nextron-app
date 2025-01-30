@@ -645,7 +645,14 @@ const userHandlers = {
 
             // Prevent deleting the admin user
             const userToDelete = userQueries.getById.get(id);
-            if (userToDelete && userToDelete.username === "admin") {
+            if (!userToDelete) {
+                return {
+                    success: false,
+                    error: "User not found",
+                };
+            }
+            
+            if (userToDelete.username === "admin") {
                 return {
                     success: false,
                     error: "Cannot delete the admin user",
@@ -669,6 +676,7 @@ const userHandlers = {
     resetUserPassword: async (event, data) => {
         try {
             const {
+                id,
                 username,
                 currentPassword,
                 adminPassword,
@@ -677,11 +685,19 @@ const userHandlers = {
             } = data;
 
             // Get the user
-            const user = userQueries.getByUsername.get(username);
+            const user = userQueries.getById.get(id);
             if (!user) {
                 return {
                     success: false,
                     error: "User not found",
+                };
+            }
+
+            // Prevent resetting admin password through this endpoint
+            if (user.username === "admin") {
+                return {
+                    success: false,
+                    error: "Admin password cannot be reset through this endpoint",
                 };
             }
 
@@ -717,21 +733,35 @@ const userHandlers = {
                         error: "Admin password is incorrect",
                     };
                 }
+            } else {
+                return {
+                    success: false,
+                    error: "Invalid reset method",
+                };
+            }
+
+            // Validate new password
+            if (!newPassword || newPassword.length < 6) {
+                return {
+                    success: false,
+                    error: "New password must be at least 6 characters long",
+                };
             }
 
             // Hash and update the new password
             const hashedPassword = await bcrypt.hash(newPassword, 10);
-            userQueries.updatePassword.run(hashedPassword, username);
-            userQueries.resetLoginAttempts.run(username);
+            userQueries.updatePassword.run(hashedPassword, id);
+            userQueries.resetLoginAttempts.run(user.username);
 
             return {
                 success: true,
+                message: "Password reset successfully",
             };
         } catch (error) {
             console.error("Error in resetUserPassword:", error);
             return {
                 success: false,
-                error: error.message,
+                error: error.message || "Failed to reset password",
             };
         }
     },
@@ -989,16 +1019,16 @@ const roleHandlers = {
             const roles = roleQueries.getAll.all();
             return {
                 success: true,
-                roles
+                roles,
             };
         } catch (error) {
             console.error("Error in getAllRoles:", error);
             return {
                 success: false,
-                error: error.message
+                error: error.message,
             };
         }
-    }
+    },
 };
 export {
     categoryHandlers,

@@ -420,9 +420,9 @@ const userQueries = {
 `),
     updatePassword: db.prepare(`
   UPDATE users 
-  SET password = ?,
+  SET password = ?, 
       updated_at = CURRENT_TIMESTAMP 
-  WHERE username = ?
+  WHERE id = ?
 `),
     updateLoginAttempts: db.prepare(`
   UPDATE users 

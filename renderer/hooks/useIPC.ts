@@ -211,8 +211,13 @@ declare global {
         adminPassword: string;
       }) => Promise<{ success: boolean; error?: string }>;
 
-      resetPassword: (data: {
+      resetUserPassword: (data: {
         id: string;
+        username: string;
+        adminPassword: string;
+        newPassword: string;
+        resetMethod: "admin" | "self";
+        currentPassword?: string;
       }) => Promise<{ success: boolean; error?: string }>;
 
       validateResetToken: (data: { token: string }) => Promise<{
@@ -618,12 +623,19 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
-  const resetPassword = async (data: any) => {
+  const resetUserPassword = async (data: {
+    id: string;
+    username: string;
+    adminPassword: string;
+    newPassword: string;
+    resetMethod: "admin" | "self";
+    currentPassword?: string;
+  }) => {
     setLoading(true);
     try {
-      const result = await window.electron.resetPassword(data);
+      const result = await window.electron.resetUserPassword(data);
       if (!result.success) {
-        handleError(result.error || "Failed to reset password");
+        handleError(result.error || "Failed to reset user password");
         return null;
       }
       return result.success;
@@ -720,7 +732,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     getAllUsers,
     updateUser,
     deleteUser,
-    resetPassword,
+    resetUserPassword,
     validateResetToken,
     getAllRoles,
   };

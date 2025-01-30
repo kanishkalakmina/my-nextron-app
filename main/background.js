@@ -89,7 +89,7 @@ const registerIpcHandlers = () => {
   ipcMain.handle("deleteUser", (event, data) =>
     userHandlers.deleteUser(event, data)
   );
-  ipcMain.handle("resetPassword", (event, data) =>
+  ipcMain.handle("resetUserPassword", (event, data) =>
     userHandlers.resetUserPassword(event, data)
   );
 

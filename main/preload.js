@@ -341,7 +341,7 @@ contextBridge.exposeInMainWorld("electron", {
       };
     }
   },
-  resetPassword: async (data) => {
+  resetUserPassword: async (data) => {
     try {
       return await ipcRenderer.invoke("resetUserPassword", data);
     } catch (error) {
@@ -352,9 +352,17 @@ contextBridge.exposeInMainWorld("electron", {
       };
     }
   },
-  validateResetToken: (data) => ipcRenderer.invoke("validateResetToken", data),
-  resetUserPassword: (data) => ipcRenderer.invoke("resetUserPassword", data),
-
+  validateResetToken: async (data) => {
+    try {
+      return await ipcRenderer.invoke("validateResetToken", data);
+    } catch (error) {
+      console.error("IPC Error:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
   // Roles
   getAllRoles: async () => {
     try {

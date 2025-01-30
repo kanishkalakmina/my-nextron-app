@@ -11,6 +11,7 @@ import Layout from "../components/Layout";
 import { useIPC } from "../hooks/useIPC";
 import toast from "react-hot-toast";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import ResetPasswordModal from "../components/ResetPasswordModal";
 
 interface User {
   id: string;
@@ -202,14 +203,25 @@ const UsersPage = () => {
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!userToResetPassword) {
+      toast.error("No user selected for password reset");
+      return;
+    }
+
     if (resetPasswordForm.newPassword !== resetPasswordForm.confirmPassword) {
       toast.error("New passwords don't match");
       return;
     }
 
+    if (resetPasswordForm.newPassword.length < 6) {
+      toast.error("New password must be at least 6 characters long");
+      return;
+    }
+
     try {
-      const result = await window.electron.resetPassword({
-        username: userToResetPassword ? userToResetPassword.username : "",
+      const result = await window.electron.resetUserPassword({
+        id: userToResetPassword.id,
+        username: userToResetPassword.username,
         adminPassword: resetPasswordForm.adminPassword,
         newPassword: resetPasswordForm.newPassword,
         resetMethod: "admin",
@@ -218,6 +230,7 @@ const UsersPage = () => {
       if (result.success) {
         toast.success("Password reset successfully");
         setIsResetPasswordModalOpen(false);
+        setUserToResetPassword(null);
         setResetPasswordForm({
           adminPassword: "",
           newPassword: "",
@@ -230,6 +243,16 @@ const UsersPage = () => {
       console.error("Error resetting password:", error);
       toast.error("Failed to reset password");
     }
+  };
+
+  const handleResetPasswordInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const { name, value } = e.target;
+    setResetPasswordForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const filteredUsers = users.filter(
@@ -260,13 +283,8 @@ const UsersPage = () => {
 
   return (
     <Layout>
-      <Head>
-        <title>User Management - POS System</title>
-      </Head>
-
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">User Management</h1>
           <button
             onClick={() => handleOpenModal()}
             className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center"
@@ -278,13 +296,13 @@ const UsersPage = () => {
 
         <div className="mb-6">
           <div className="relative">
-            <input
+            {/* <input
               type="text"
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-4 py-2 border rounded-lg pl-10"
-            />
+            /> */}
             <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 absolute left-3 top-3" />
           </div>
         </div>
@@ -542,134 +560,23 @@ const UsersPage = () => {
       />
 
       {/* Reset Password Modal */}
-      {isResetPasswordModalOpen && userToResetPassword && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-md w-full transform transition-all">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Reset Password
-                </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  Resetting password for user:{" "}
-                  <span className="font-medium">
-                    {userToResetPassword.username}
-                  </span>
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setIsResetPasswordModalOpen(false);
-                  setResetPasswordForm({
-                    adminPassword: "",
-                    newPassword: "",
-                    confirmPassword: "",
-                  });
-                }}
-                className="text-gray-400 hover:text-gray-500 transition-colors"
-              >
-                <svg
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
-            <form onSubmit={handleResetPasswordSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Admin Password
-                </label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    value={resetPasswordForm.adminPassword}
-                    onChange={(e) =>
-                      setResetPasswordForm({
-                        ...resetPasswordForm,
-                        adminPassword: e.target.value,
-                      })
-                    }
-                    className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 sm:text-sm transition-colors"
-                    required
-                    placeholder="Enter your admin password"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    value={resetPasswordForm.newPassword}
-                    onChange={(e) =>
-                      setResetPasswordForm({
-                        ...resetPasswordForm,
-                        newPassword: e.target.value,
-                      })
-                    }
-                    className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 sm:text-sm transition-colors"
-                    required
-                    placeholder="Enter new password"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <input
-                    type="password"
-                    value={resetPasswordForm.confirmPassword}
-                    onChange={(e) =>
-                      setResetPasswordForm({
-                        ...resetPasswordForm,
-                        confirmPassword: e.target.value,
-                      })
-                    }
-                    className="block w-full px-4 py-2.5 rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 sm:text-sm transition-colors"
-                    required
-                    placeholder="Confirm new password"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end space-x-3 mt-8 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsResetPasswordModalOpen(false);
-                    setResetPasswordForm({
-                      adminPassword: "",
-                      newPassword: "",
-                      confirmPassword: "",
-                    });
-                  }}
-                  className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500/20 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-colors"
-                >
-                  Reset Password
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ResetPasswordModal
+        isOpen={isResetPasswordModalOpen}
+        onClose={() => {
+          setIsResetPasswordModalOpen(false);
+          setUserToResetPassword(null);
+          setResetPasswordForm({
+            adminPassword: "",
+            newPassword: "",
+            confirmPassword: "",
+          });
+        }}
+        onSubmit={handleResetPasswordSubmit}
+        adminPassword={resetPasswordForm.adminPassword}
+        newPassword={resetPasswordForm.newPassword}
+        confirmPassword={resetPasswordForm.confirmPassword}
+        onInputChange={handleResetPasswordInputChange}
+      />
     </Layout>
   );
 };
