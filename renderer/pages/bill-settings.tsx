@@ -39,7 +39,7 @@ export default function BillSettingsPage() {
     billWidth: 600,
   });
 
-  const { loading, error, createBillTemplate } = useIPC({
+  const { loading, error, updateBillTemplate } = useIPC({
     onError: (error) => {
       console.error("Error:", error);
       toast.error(error);

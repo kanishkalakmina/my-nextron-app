@@ -33,9 +33,8 @@ export default function Transactions() {
       setLoading(true);
       setError(null);
       const result = await window.electron.getAllPayments();
-
-      if (result?.success && Array.isArray(result.data)) {
-        setTransactions(result.data);
+      if (result?.success && Array.isArray(result.payments)) {
+        setTransactions(result.payments);
       } else {
         setError(result?.error || "Failed to load transactions");
         setTransactions([]);

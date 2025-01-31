@@ -173,6 +173,26 @@ declare global {
         created_at: string;
       }) => Promise<{ success: boolean; error?: string }>;
 
+      getAllPayments: () => Promise<{
+        success: boolean;
+        payments?: Array<{
+          id: string;
+          order_id: string;
+          amount: number;
+          payment_method: string;
+          payment_date: string;
+          subtotal: number;
+          discount: number;
+          tax: number;
+          total: number;
+          amount_received: number;
+          change_amount: number;
+          status: string;
+          created_at: string;
+        }>;
+        error?: string;
+      }>;
+
       // User management
       createUser: (data: {
         username: string;
@@ -782,6 +802,20 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const getAllPayments = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllPayments();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch payments");
+        return [];
+      }
+      return result.payments;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getAllBillTemplates = async () => {
     setLoading(true);
     try {
@@ -791,38 +825,6 @@ export function useIPC(options: UseIPCOptions = {}) {
         return [];
       }
       return result.templates;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const createBillTemplate = async (
-    data: Omit<
-      {
-        company_name: string;
-        address: string;
-        phone: string;
-        email: string;
-        website: string;
-        tax_id: string;
-        footer_text: string;
-        show_logo: boolean;
-        show_tax_id: boolean;
-        show_footer: boolean;
-        logo_path: string;
-        bill_width: number;
-      },
-      "id"
-    >
-  ) => {
-    setLoading(true);
-    try {
-      const result = await window.electron.createBillTemplate(data);
-      if (!result.success) {
-        handleError(result.error || "Failed to create bill template");
-        return false;
-      }
-      return true;
     } finally {
       setLoading(false);
     }
@@ -850,7 +852,7 @@ export function useIPC(options: UseIPCOptions = {}) {
   ) => {
     setLoading(true);
     try {
-      const result = await window.electron.updateBillTemplate(id, data);
+      const result = await window.electron.updateBillTemplate({ id, ...data });
       if (!result.success) {
         handleError(result.error || "Failed to update bill template");
         return false;
@@ -906,6 +908,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     getAllHoldOrders,
     deleteHoldOrder,
     savePayment,
+    getAllPayments,
 
     // User management
     createUser,
@@ -918,7 +921,6 @@ export function useIPC(options: UseIPCOptions = {}) {
 
     // Bill templates
     getAllBillTemplates,
-    createBillTemplate,
     updateBillTemplate,
     uploadImage,
   };

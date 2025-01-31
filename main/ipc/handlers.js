@@ -835,7 +835,7 @@ const paymentHandlers = {
             const payments = paymentQueries.getAll.all();
             return {
                 success: true,
-                data: payments,
+                payments: payments,
             };
         } catch (error) {
             console.error("Error fetching payments:", error);
@@ -1052,7 +1052,7 @@ const billTemplateHandlers = {
                 data.logo_path,
                 data.bill_width
             );
-            
+
             return {
                 success: true,
                 id
@@ -1083,7 +1083,7 @@ const billTemplateHandlers = {
                 data.bill_width,
                 data.id
             );
-            
+
             return {
                 success: true
             };
