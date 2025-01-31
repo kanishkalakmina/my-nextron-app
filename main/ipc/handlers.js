@@ -7,6 +7,7 @@ import {
     holdOrderQueries,
     paymentQueries,
     invoicedItemQueries,
+    billTemplateQueries
 } from "../db/index.js";
 import {
     app
@@ -651,7 +652,7 @@ const userHandlers = {
                     error: "User not found",
                 };
             }
-            
+
             if (userToDelete.username === "admin") {
                 return {
                     success: false,
@@ -1030,6 +1031,88 @@ const roleHandlers = {
         }
     },
 };
+
+// Bill Template handlers
+const billTemplateHandlers = {
+    createBillTemplate: async (event, data) => {
+        try {
+            const id = generateUUID();
+            const result = billTemplateQueries.create.run(
+                id,
+                data.company_name,
+                data.address,
+                data.phone,
+                data.email,
+                data.website,
+                data.tax_id,
+                data.footer_text,
+                data.show_logo ? 1 : 0,
+                data.show_tax_id ? 1 : 0,
+                data.show_footer ? 1 : 0,
+                data.logo_path,
+                data.bill_width
+            );
+            
+            return {
+                success: true,
+                id
+            };
+        } catch (error) {
+            console.error("Error in createBillTemplate:", error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    },
+
+    updateBillTemplate: async (event, data) => {
+        try {
+            billTemplateQueries.update.run(
+                data.company_name,
+                data.address,
+                data.phone,
+                data.email,
+                data.website,
+                data.tax_id,
+                data.footer_text,
+                data.show_logo ? 1 : 0,
+                data.show_tax_id ? 1 : 0,
+                data.show_footer ? 1 : 0,
+                data.logo_path,
+                data.bill_width,
+                data.id
+            );
+            
+            return {
+                success: true
+            };
+        } catch (error) {
+            console.error("Error in updateBillTemplate:", error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    },
+
+    getAllBillTemplates: async () => {
+        try {
+            const templates = billTemplateQueries.getAll.all();
+            return {
+                success: true,
+                templates
+            };
+        } catch (error) {
+            console.error("Error in getAllBillTemplates:", error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+};
+
 export {
     categoryHandlers,
     productHandlers,
@@ -1038,4 +1121,5 @@ export {
     paymentHandlers,
     userHandlers,
     roleHandlers,
+    billTemplateHandlers,
 };

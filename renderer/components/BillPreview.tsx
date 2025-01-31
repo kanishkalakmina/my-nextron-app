@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 interface BillSettings {
   companyName: string;
@@ -22,44 +22,53 @@ interface BillPreviewProps {
 const BillPreview: React.FC<BillPreviewProps> = ({ settings }) => {
   // Sample bill data for preview
   const sampleBill = {
-    invoiceNo: 'INV-2025-001',
+    invoiceNo: "INV-2025-001",
     date: new Date().toLocaleDateString(),
     items: [
-      { name: 'Sample Product 1', qty: 2, price: 25.00, total: 50.00 },
-      { name: 'Sample Product 2', qty: 1, price: 30.00, total: 30.00 },
+      { name: "Sample Product 1", qty: 2, price: 25.0, total: 50.0 },
+      { name: "Sample Product 2", qty: 1, price: 30.0, total: 30.0 },
     ],
-    subtotal: 80.00,
-    tax: 8.00,
-    total: 88.00,
+    subtotal: 80.0,
+    tax: 8.0,
+    total: 88.0,
   };
 
   return (
-    <div 
+    <div
       className="bg-white p-6 rounded-lg shadow-lg mx-auto"
-      style={{ width: `${settings.billWidth}px` }}
+      style={{
+        width: `${settings.billWidth}px`,
+        fontFamily: "monospace",
+      }}
     >
       {/* Header Section */}
       <div className="border-b pb-3 mb-3 text-center">
-        {settings.showLogo && settings.logo ? (
+        {settings.showLogo && settings.logo && (
           <div className="mb-3 flex justify-center">
-            <img 
-              src={settings.logo} 
+            <img
+              src={settings.logo}
               alt="Company Logo"
               className="h-20 w-auto object-contain"
             />
           </div>
-        ) : settings.showLogo && (
-          <div className="mb-3 h-20 mx-auto w-48 bg-gray-200 flex items-center justify-center text-gray-500">
-            Logo Placeholder
-          </div>
         )}
-        <h1 className="text-2xl font-bold mb-1">{settings.companyName || 'Company Name'}</h1>
+        <h1 className="text-2xl font-bold mb-1">
+          {settings.companyName || "Company Name"}
+        </h1>
         {settings.address && (
-          <p className="text-gray-600 whitespace-pre-line mb-0.5">{settings.address}</p>
+          <p className="text-gray-600 whitespace-pre-line mb-0.5">
+            {settings.address}
+          </p>
         )}
-        {settings.phone && <p className="text-gray-600 mb-0.5">Phone: {settings.phone}</p>}
-        {settings.email && <p className="text-gray-600 mb-0.5">Email: {settings.email}</p>}
-        {settings.website && <p className="text-gray-600 mb-0.5">Website: {settings.website}</p>}
+        {settings.phone && (
+          <p className="text-gray-600 mb-0.5">Phone: {settings.phone}</p>
+        )}
+        {settings.email && (
+          <p className="text-gray-600 mb-0.5">Email: {settings.email}</p>
+        )}
+        {settings.website && (
+          <p className="text-gray-600 mb-0.5">Website: {settings.website}</p>
+        )}
         {settings.showTaxId && settings.taxId && (
           <p className="text-gray-600">Tax ID: {settings.taxId}</p>
         )}
@@ -94,8 +103,8 @@ const BillPreview: React.FC<BillPreviewProps> = ({ settings }) => {
             <tr key={index} className="border-b">
               <td className="py-2">{item.name}</td>
               <td className="text-right py-2">{item.qty}</td>
-              <td className="text-right py-2">${item.price.toFixed(2)}</td>
-              <td className="text-right py-2">${item.total.toFixed(2)}</td>
+              <td className="text-right py-2">Rs: {item.price.toFixed(2)}</td>
+              <td className="text-right py-2">Rs: {item.total.toFixed(2)}</td>
             </tr>
           ))}
         </tbody>
@@ -105,15 +114,15 @@ const BillPreview: React.FC<BillPreviewProps> = ({ settings }) => {
       <div className="mb-6">
         <div className="flex justify-between border-b py-2">
           <span>Subtotal:</span>
-          <span>${sampleBill.subtotal.toFixed(2)}</span>
+          <span>Rs: {sampleBill.subtotal.toFixed(2)}</span>
         </div>
         <div className="flex justify-between border-b py-2">
           <span>Tax:</span>
-          <span>${sampleBill.tax.toFixed(2)}</span>
+          <span>Rs: {sampleBill.tax.toFixed(2)}</span>
         </div>
         <div className="flex justify-between py-2 font-bold">
           <span>Total:</span>
-          <span>${sampleBill.total.toFixed(2)}</span>
+          <span>Rs: {sampleBill.total.toFixed(2)}</span>
         </div>
       </div>
 

@@ -152,6 +152,25 @@ try {
       password_reset_expires DATETIME,
       FOREIGN KEY (role_id) REFERENCES roles(role_id)
     );
+
+    -- Create bill_templates table
+    CREATE TABLE IF NOT EXISTS bill_templates (
+      id TEXT PRIMARY KEY,
+      company_name TEXT NOT NULL,
+      address TEXT,
+      phone TEXT,
+      email TEXT,
+      website TEXT,
+      tax_id TEXT,
+      footer_text TEXT,
+      show_logo INTEGER DEFAULT 1,
+      show_tax_id INTEGER DEFAULT 1,
+      show_footer INTEGER DEFAULT 1,
+      logo_path TEXT,
+      bill_width INTEGER DEFAULT 600,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
     // Enable foreign key support
@@ -222,6 +241,27 @@ createDefaultAdmin.run(
     "System Administrator",
     "active"
 );
+
+// Insert demo bill template if none exists
+const billTemplateCount = db
+    .prepare("SELECT COUNT(*) as count FROM bill_templates")
+    .get();
+if (billTemplateCount.count === 0) {
+    const demoTemplateId = uuidv4();
+    db.prepare(
+        `
+        INSERT INTO bill_templates (
+            id, company_name, address, phone, email, website, 
+            tax_id, footer_text, show_logo, show_tax_id, show_footer, 
+            logo_path, bill_width
+        ) VALUES (
+            ?, 'Demo Company', '123 Demo Street, Demo City', '+1234567890',
+            'demo@company.com', '', 'TAX-12345',
+            'Thank you for your business!', 1, 1, 1, '', 600
+        )
+    `
+    ).run(demoTemplateId);
+}
 
 // Role queries
 const roleQueries = {
@@ -400,6 +440,7 @@ const invoicedItemQueries = {
     WHERE invoiced_item.payment_id = ?
   `),
 };
+
 // Users CRUD
 const userQueries = {
     create: db.prepare(`
@@ -448,13 +489,36 @@ const userQueries = {
 `),
 };
 
+// Bill Template queries
+const billTemplateQueries = {
+    create: db.prepare(`
+        INSERT INTO bill_templates (
+            id, company_name, address, phone, email, website, 
+            tax_id, footer_text, show_logo, show_tax_id, show_footer, 
+            logo_path, bill_width
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    update: db.prepare(`
+        UPDATE bill_templates 
+        SET company_name = ?, address = ?, phone = ?, email = ?, website = ?,
+            tax_id = ?, footer_text = ?, show_logo = ?, show_tax_id = ?, 
+            show_footer = ?, logo_path = ?, bill_width = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    `),
+    getAll: db.prepare("SELECT * FROM bill_templates ORDER BY created_at DESC"),
+    getById: db.prepare("SELECT * FROM bill_templates WHERE id = ?"),
+    delete: db.prepare("DELETE FROM bill_templates WHERE id = ?"),
+};
+
 export {
     categoryQueries,
     productQueries,
     orderQueries,
+    userQueries,
+    roleQueries,
     holdOrderQueries,
     paymentQueries,
     invoicedItemQueries,
-    userQueries,
-    roleQueries,
+    billTemplateQueries,
 };

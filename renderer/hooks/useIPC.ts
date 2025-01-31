@@ -239,7 +239,82 @@ declare global {
         resetMethod: "admin" | "self";
         currentPassword?: string;
       }) => Promise<{ success: boolean; error?: string }>;
+
+      createBillTemplate: (data: {
+        companyName: string;
+        address: string;
+        phone: string;
+        email: string;
+        website: string;
+        taxId: string;
+        footerText: string;
+        showLogo: boolean;
+        showTaxId: boolean;
+        showFooter: boolean;
+        logoPath: string; // Updated to match the new column name
+        billWidth: number;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      updateBillTemplate: (data: {
+        id: string;
+        company_name: string;
+        address: string;
+        phone: string;
+        email: string;
+        website: string;
+        tax_id: string;
+        footer_text: string;
+        show_logo: boolean;
+        show_tax_id: boolean;
+        show_footer: boolean;
+        logo_path: string; // Updated to match the new column name
+        bill_width: number;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      getAllBillTemplates: () => Promise<{
+        success: boolean;
+        templates?: Array<{
+          id: string;
+          company_name: string;
+          address: string;
+          phone: string;
+          email: string;
+          website: string;
+          tax_id: string;
+          footer_text: string;
+          show_logo: number;
+          show_tax_id: number;
+          show_footer: number;
+          logo_path: string;
+          bill_width: number;
+          created_at: string;
+          updated_at: string;
+        }>;
+        error?: string;
+      }>;
     };
+
+    getAllBillTemplates: () => Promise<{
+      success: boolean;
+      templates?: Array<{
+        id: string;
+        company_name: string;
+        address: string;
+        phone: string;
+        email: string;
+        website: string;
+        tax_id: string;
+        footer_text: string;
+        show_logo: number;
+        show_tax_id: number;
+        show_footer: number;
+        logo_path: string;
+        bill_width: number;
+        created_at: string;
+        updated_at: string;
+      }>;
+      error?: string;
+    }>;
   }
 }
 
@@ -707,6 +782,103 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const getAllBillTemplates = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllBillTemplates();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch bill templates");
+        return [];
+      }
+      return result.templates;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const createBillTemplate = async (
+    data: Omit<
+      {
+        company_name: string;
+        address: string;
+        phone: string;
+        email: string;
+        website: string;
+        tax_id: string;
+        footer_text: string;
+        show_logo: boolean;
+        show_tax_id: boolean;
+        show_footer: boolean;
+        logo_path: string;
+        bill_width: number;
+      },
+      "id"
+    >
+  ) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.createBillTemplate(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to create bill template");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateBillTemplate = async (
+    id: string,
+    data: Omit<
+      {
+        company_name: string;
+        address: string;
+        phone: string;
+        email: string;
+        website: string;
+        tax_id: string;
+        footer_text: string;
+        show_logo: boolean;
+        show_tax_id: boolean;
+        show_footer: boolean;
+        logo_path: string;
+        bill_width: number;
+      },
+      "id"
+    >
+  ) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.updateBillTemplate(id, data);
+      if (!result.success) {
+        handleError(result.error || "Failed to update bill template");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const uploadImage = async (data: {
+    name: string;
+    type: string;
+    data: number[];
+  }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.uploadImage(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to upload image");
+        return null;
+      }
+      return result.filePath;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
@@ -743,5 +915,11 @@ export function useIPC(options: UseIPCOptions = {}) {
     resetUserPassword,
     validateResetToken,
     getAllRoles,
+
+    // Bill templates
+    getAllBillTemplates,
+    createBillTemplate,
+    updateBillTemplate,
+    uploadImage,
   };
 }
