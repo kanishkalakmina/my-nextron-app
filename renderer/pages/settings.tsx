@@ -2,6 +2,7 @@ import React from 'react';
 import Head from 'next/head';
 import Layout from '../components/Layout';
 import { FaFileInvoiceDollar, FaCog, FaChartBar, FaTools } from 'react-icons/fa';
+import { useRouter } from 'next/router';
 
 interface SettingsCardProps {
   title: string;
@@ -26,9 +27,15 @@ const SettingsCard: React.FC<SettingsCardProps> = ({ title, description, icon, o
 );
 
 const SettingsPage = () => {
+  const router = useRouter();
+
   const handleCardClick = (setting: string) => {
-    // Handle navigation or modal opening for each setting
-    console.log(`Clicked ${setting} settings`);
+    if (setting === 'bill') {
+      router.push('/bill-settings');
+    } else {
+      // Handle other settings
+      console.log(`Clicked ${setting} settings`);
+    }
   };
 
   return (
