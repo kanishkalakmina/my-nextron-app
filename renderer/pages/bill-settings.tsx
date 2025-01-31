@@ -224,7 +224,7 @@ export default function BillSettingsPage() {
                   <input
                     type="range"
                     name="billWidth"
-                    min="400"
+                    min="300"
                     max="800"
                     step="50"
                     value={settings.billWidth}
