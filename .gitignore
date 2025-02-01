@@ -8,7 +8,7 @@ node_modules
 .next
 next-env.d.ts
 
-# build
+# build te
 /app
 dist
 /db1.sqlite
