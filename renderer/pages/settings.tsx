@@ -1,8 +1,13 @@
-import React from 'react';
-import Head from 'next/head';
-import Layout from '../components/Layout';
-import { FaFileInvoiceDollar, FaCog, FaChartBar, FaTools } from 'react-icons/fa';
-import { useRouter } from 'next/router';
+import React from "react";
+import Head from "next/head";
+import Layout from "../components/Layout";
+import {
+  FaFileInvoiceDollar,
+  FaCog,
+  FaChartBar,
+  FaTools,
+} from "react-icons/fa";
+import { useRouter } from "next/router";
 
 interface SettingsCardProps {
   title: string;
@@ -11,15 +16,18 @@ interface SettingsCardProps {
   onClick: () => void;
 }
 
-const SettingsCard: React.FC<SettingsCardProps> = ({ title, description, icon, onClick }) => (
-  <div 
+const SettingsCard: React.FC<SettingsCardProps> = ({
+  title,
+  description,
+  icon,
+  onClick,
+}) => (
+  <div
     className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow duration-300 cursor-pointer"
     onClick={onClick}
   >
     <div className="flex items-center mb-4">
-      <div className="text-blue-600 text-2xl">
-        {icon}
-      </div>
+      <div className="text-blue-600 text-2xl">{icon}</div>
       <h2 className="text-xl font-semibold ml-3">{title}</h2>
     </div>
     <p className="text-gray-600">{description}</p>
@@ -30,8 +38,8 @@ const SettingsPage = () => {
   const router = useRouter();
 
   const handleCardClick = (setting: string) => {
-    if (setting === 'bill') {
-      router.push('/bill-settings');
+    if (setting === "bill") {
+      router.push("/bill-settings");
     } else {
       // Handle other settings
       console.log(`Clicked ${setting} settings`);
@@ -50,25 +58,25 @@ const SettingsPage = () => {
             title="Bill Settings"
             description="Configure invoice format, tax rates, and billing preferences"
             icon={<FaFileInvoiceDollar />}
-            onClick={() => handleCardClick('bill')}
+            onClick={() => handleCardClick("bill")}
           />
           <SettingsCard
             title="System Settings"
             description="Manage system configurations, users, and permissions"
             icon={<FaCog />}
-            onClick={() => handleCardClick('system')}
+            onClick={() => handleCardClick("system")}
           />
           <SettingsCard
             title="Report Settings"
             description="Customize report layouts and scheduling options"
             icon={<FaChartBar />}
-            onClick={() => handleCardClick('report')}
+            onClick={() => handleCardClick("report")}
           />
           <SettingsCard
             title="General Settings"
             description="Configure general application preferences and options"
             icon={<FaTools />}
-            onClick={() => handleCardClick('general')}
+            onClick={() => handleCardClick("general")}
           />
         </div>
       </div>
