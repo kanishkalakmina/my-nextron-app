@@ -2,9 +2,12 @@ import {
     categoryQueries,
     productQueries,
     orderQueries,
+    userQueries,
+    roleQueries,
     holdOrderQueries,
     paymentQueries,
     invoicedItemQueries,
+    billTemplateQueries,
 } from "../db/index.js";
 import {
     app
@@ -12,6 +15,7 @@ import {
 import crypto from "crypto";
 import fs from "fs";
 import path from "path";
+import bcrypt from "bcrypt";
 
 // Function to generate UUID
 const generateUUID = () => {
@@ -212,6 +216,13 @@ const productHandlers = {
                 };
             }
 
+            // Validate price is a positive number
+            if (price < 0) {
+                return {
+                    success: false,
+                    error: "Price must be a positive number",
+                };
+            }
             // Validate price is a positive number
             if (price < 0) {
                 return {
@@ -521,7 +532,436 @@ const orderHandlers = {
         }
     },
 };
+// User handlers
+const userHandlers = {
+    createUser: async (event, data) => {
+        try {
+            const {
+                username,
+                password,
+                full_name,
+                role_id,
+                status
+            } = data;
+            const hashedPassword = await bcrypt.hash(password, 10);
+            const id = generateUUID();
 
+            userQueries.create.run(
+                id,
+                username,
+                hashedPassword,
+                full_name,
+                role_id,
+                status
+            );
+            return {
+                success: true,
+            };
+        } catch (error) {
+            console.error("Error in createUser:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+
+    getAllUsers: async () => {
+        try {
+            const users = userQueries.getAll.all();
+            // Don't send password and sensitive info to frontend
+            const sanitizedUsers = users.map((user) => {
+                const {
+                    password,
+                    ...rest
+                } = user;
+                // Get role name for each user
+                const roleInfo = roleQueries.getRoleName.get(user.role_id);
+                return {
+                    ...rest,
+                    role_name: roleInfo ? roleInfo.role_name : "Unknown Role",
+                };
+            });
+            return {
+                success: true,
+                users: sanitizedUsers,
+            };
+        } catch (error) {
+            console.error("Error in getAllUsers:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+
+    updateUser: async (event, data) => {
+        try {
+            const {
+                id,
+                username,
+                full_name,
+                role_id,
+                status
+            } = data;
+            userQueries.update.run(username, full_name, role_id, status, id);
+            return {
+                success: true,
+            };
+        } catch (error) {
+            console.error("Error in updateUser:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+
+    deleteUser: async (event, data) => {
+        try {
+            const {
+                id,
+                adminPassword
+            } = data;
+
+            // Get admin user and verify admin password
+            const admin = userQueries.getByUsername.get("admin");
+            if (!admin) {
+                return {
+                    success: false,
+                    error: "Admin account not found",
+                };
+            }
+
+            const isValidAdminPassword = await bcrypt.compare(
+                adminPassword,
+                admin.password
+            );
+            if (!isValidAdminPassword) {
+                return {
+                    success: false,
+                    error: "Admin password is incorrect",
+                };
+            }
+
+            // Prevent deleting the admin user
+            const userToDelete = userQueries.getById.get(id);
+            if (!userToDelete) {
+                return {
+                    success: false,
+                    error: "User not found",
+                };
+            }
+
+            if (userToDelete.username === "admin") {
+                return {
+                    success: false,
+                    error: "Cannot delete the admin user",
+                };
+            }
+
+            // Delete the user
+            userQueries.delete.run(id);
+            return {
+                success: true,
+            };
+        } catch (error) {
+            console.error("Error in deleteUser:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+
+    resetUserPassword: async (event, data) => {
+        try {
+            const {
+                id,
+                username,
+                currentPassword,
+                adminPassword,
+                newPassword,
+                resetMethod,
+            } = data;
+
+            // Get the user
+            const user = userQueries.getById.get(id);
+            if (!user) {
+                return {
+                    success: false,
+                    error: "User not found",
+                };
+            }
+
+            // Prevent resetting admin password through this endpoint
+            if (user.username === "admin") {
+                return {
+                    success: false,
+                    error: "Admin password cannot be reset through this endpoint",
+                };
+            }
+
+            if (resetMethod === "self") {
+                // Verify current password
+                const isValidPassword = await bcrypt.compare(
+                    currentPassword,
+                    user.password
+                );
+                if (!isValidPassword) {
+                    return {
+                        success: false,
+                        error: "Current password is incorrect",
+                    };
+                }
+            } else if (resetMethod === "admin") {
+                // Get admin user and verify admin password
+                const admin = userQueries.getByUsername.get("admin");
+                if (!admin) {
+                    return {
+                        success: false,
+                        error: "Admin account not found",
+                    };
+                }
+
+                const isValidAdminPassword = await bcrypt.compare(
+                    adminPassword,
+                    admin.password
+                );
+                if (!isValidAdminPassword) {
+                    return {
+                        success: false,
+                        error: "Admin password is incorrect",
+                    };
+                }
+            } else {
+                return {
+                    success: false,
+                    error: "Invalid reset method",
+                };
+            }
+
+            // Validate new password
+            if (!newPassword || newPassword.length < 6) {
+                return {
+                    success: false,
+                    error: "New password must be at least 6 characters long",
+                };
+            }
+
+            // Hash and update the new password
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            userQueries.updatePassword.run(hashedPassword, id);
+            userQueries.resetLoginAttempts.run(user.username);
+
+            return {
+                success: true,
+                message: "Password reset successfully",
+            };
+        } catch (error) {
+            console.error("Error in resetUserPassword:", error);
+            return {
+                success: false,
+                error: error.message || "Failed to reset password",
+            };
+        }
+    },
+    login: async (event, credentials) => {
+        try {
+            const {
+                username,
+                password
+            } = credentials;
+            const user = userQueries.findByUsername.get(username);
+            const role = roleQueries.getRolePermissions.get(user.role_id);
+            console.log(user);
+            console.log(role);
+
+            if (!user) {
+                return {
+                    success: false,
+                    error: "Invalid username or password",
+                };
+            }
+            if (user.status === "inactive") {
+                return {
+                    success: false,
+                    error: "Your account is inactive",
+                };
+            }
+            if (user.status === "suspended") {
+                return {
+                    success: false,
+                    error: "Your account is suspended",
+                };
+            }
+            if (!role) {
+                return {
+                    success: false,
+                    error: "Please assign a role to this user",
+                };
+            }
+
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+
+            if (!isPasswordValid) {
+                return {
+                    success: false,
+                    error: "Invalid username or password",
+                };
+            }
+
+            // Don't send password in response
+            const {
+                password: _,
+                ...userWithoutPassword
+            } = user;
+
+            return {
+                success: true,
+                user: userWithoutPassword,
+                userRole: role,
+            };
+        } catch (error) {
+            console.error("Login error:", error);
+            return {
+                success: false,
+                error: "An error occurred during login",
+            };
+        }
+    },
+};
+// Payments handlers
+const paymentHandlers = {
+    savePayment: async (event, data) => {
+        try {
+            const {
+                id,
+                order_id,
+                amount,
+                payment_method,
+                payment_date,
+                subtotal,
+                discount,
+                tax,
+                total,
+                amount_received,
+                change_amount,
+                status,
+                created_at,
+                orderItems,
+            } = data;
+
+            // Save payment first
+            paymentQueries.create.run(
+                id,
+                order_id,
+                amount,
+                payment_method,
+                payment_date,
+                subtotal,
+                discount,
+                tax,
+                total,
+                amount_received,
+                change_amount,
+                status,
+                created_at
+            );
+
+            // Save each purchased item
+            if (orderItems && Array.isArray(orderItems)) {
+                for (const item of orderItems) {
+                    const invoicedItemId = generateUUID();
+                    invoicedItemQueries.create.run(
+                        invoicedItemId,
+                        id, // payment_id
+                        item.id, // product_id
+                        item.quantity,
+                        item.price
+                    );
+                }
+            }
+
+            return {
+                success: true,
+            };
+        } catch (error) {
+            console.error("Error saving payment:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    getAllPayments: () => {
+        try {
+            const payments = paymentQueries.getAll.all();
+            return {
+                success: true,
+                payments: payments,
+            };
+        } catch (error) {
+            console.error("Error fetching payments:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    getPaymentById: (event, {
+        id
+    }) => {
+        try {
+            const payment = paymentQueries.getById.get(id);
+            return {
+                success: true,
+                data: payment,
+            };
+        } catch (error) {
+            console.error("Error fetching payment:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    getPaymentByOrderId: (event, {
+        orderId
+    }) => {
+        try {
+            const payment = paymentQueries.getByOrderId.get(orderId);
+            return {
+                success: true,
+                data: payment,
+            };
+        } catch (error) {
+            console.error("Error fetching payment by order:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    searchPayments: (event, {
+        searchTerm
+    }) => {
+        try {
+            const term = `%${searchTerm}%`;
+            const payments = paymentQueries.searchPayments.all(term, term, term);
+            return {
+                success: true,
+                data: payments,
+            };
+        } catch (error) {
+            console.error("Error searching payments:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+};
 // Hold Orders handlers
 const holdOrderHandlers = {
     checkReference: async (event, {
@@ -637,107 +1077,104 @@ const holdOrderHandlers = {
         }
     },
 };
-
-// Payments handlers
-const paymentHandlers = {
-    savePayment: async (event, data) => {
+// Role handlers
+const roleHandlers = {
+    getAllRoles: async () => {
         try {
-            const {
-                id,
-                order_id,
-                amount,
-                payment_method,
-                payment_date,
-                subtotal,
-                discount,
-                tax,
-                total,
-                amount_received,
-                change_amount,
-                status,
-                created_at,
-                orderItems
-            } = data;
-
-            // Save payment first
-            paymentQueries.create.run(
-                id,
-                order_id,
-                amount,
-                payment_method,
-                payment_date,
-                subtotal,
-                discount,
-                tax,
-                total,
-                amount_received,
-                change_amount,
-                status,
-                created_at
-            );
-
-            // Save each purchased item
-            if (orderItems && Array.isArray(orderItems)) {
-                for (const item of orderItems) {
-                    const invoicedItemId = generateUUID();
-                    invoicedItemQueries.create.run(
-                        invoicedItemId,
-                        id, // payment_id
-                        item.id, // product_id
-                        item.quantity,
-                        item.price
-                    );
-                }
-            }
-            
+            const roles = roleQueries.getAll.all();
             return {
                 success: true,
+                roles,
             };
         } catch (error) {
-            console.error("Error saving payment:", error);
+            console.error("Error in getAllRoles:", error);
             return {
                 success: false,
                 error: error.message,
             };
         }
     },
-    getAllPayments: () => {
+};
+
+// Bill Template handlers
+const billTemplateHandlers = {
+    createBillTemplate: async (event, data) => {
         try {
-            const payments = paymentQueries.getAll.all();
-            return { success: true, data: payments };
+            const id = generateUUID();
+            const result = billTemplateQueries.create.run(
+                id,
+                data.company_name,
+                data.address,
+                data.phone,
+                data.email,
+                data.website,
+                data.tax_id,
+                data.footer_text,
+                data.show_logo ? 1 : 0,
+                data.show_tax_id ? 1 : 0,
+                data.show_footer ? 1 : 0,
+                data.logo_path,
+                data.bill_width
+            );
+
+            return {
+                success: true,
+                id,
+            };
         } catch (error) {
-            console.error("Error fetching payments:", error);
-            return { success: false, error: error.message };
+            console.error("Error in createBillTemplate:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
         }
     },
-    getPaymentById: (event, { id }) => {
+
+    updateBillTemplate: async (event, data) => {
         try {
-            const payment = paymentQueries.getById.get(id);
-            return { success: true, data: payment };
+            billTemplateQueries.update.run(
+                data.company_name,
+                data.address,
+                data.phone,
+                data.email,
+                data.website,
+                data.tax_id,
+                data.footer_text,
+                data.show_logo ? 1 : 0,
+                data.show_tax_id ? 1 : 0,
+                data.show_footer ? 1 : 0,
+                data.logo_path,
+                data.bill_width,
+                data.id
+            );
+
+            return {
+                success: true,
+            };
         } catch (error) {
-            console.error("Error fetching payment:", error);
-            return { success: false, error: error.message };
+            console.error("Error in updateBillTemplate:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
         }
     },
-    getPaymentByOrderId: (event, { orderId }) => {
+
+    getAllBillTemplates: async () => {
         try {
-            const payment = paymentQueries.getByOrderId.get(orderId);
-            return { success: true, data: payment };
+            const templates = billTemplateQueries.getAll.all();
+            return {
+                success: true,
+                templates,
+            };
         } catch (error) {
-            console.error("Error fetching payment by order:", error);
-            return { success: false, error: error.message };
+            console.error("Error in getAllBillTemplates:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
         }
     },
-    searchPayments: (event, { searchTerm }) => {
-        try {
-            const term = `%${searchTerm}%`;
-            const payments = paymentQueries.searchPayments.all(term, term, term);
-            return { success: true, data: payments };
-        } catch (error) {
-            console.error("Error searching payments:", error);
-            return { success: false, error: error.message };
-        }
-    }
 };
 
 export {
@@ -746,4 +1183,7 @@ export {
     orderHandlers,
     holdOrderHandlers,
     paymentHandlers,
+    userHandlers,
+    roleHandlers,
+    billTemplateHandlers,
 };

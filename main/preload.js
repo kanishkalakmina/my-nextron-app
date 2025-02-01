@@ -299,4 +299,155 @@ contextBridge.exposeInMainWorld("electron", {
             };
         }
     },
+    getAllPayments: async () => {
+        try {
+            return await ipcRenderer.invoke("get-all-payments");
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    // User management
+    createUser: async (data) => {
+        try {
+            return await ipcRenderer.invoke("createUser", data);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    getAllUsers: async () => {
+        try {
+            return await ipcRenderer.invoke("getAllUsers");
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    updateUser: async (data) => {
+        try {
+            return await ipcRenderer.invoke("updateUser", data);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    deleteUser: async (data) => {
+        try {
+            return await ipcRenderer.invoke("deleteUser", data);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    resetUserPassword: async (data) => {
+        try {
+            return await ipcRenderer.invoke("resetUserPassword", data);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    validateResetToken: async (data) => {
+        try {
+            return await ipcRenderer.invoke("validateResetToken", data);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    // Roles
+    getAllRoles: async () => {
+        try {
+            return await ipcRenderer.invoke("get-all-roles");
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+
+    // Image upload
+    uploadImage: async (fileData) => {
+        try {
+            return await ipcRenderer.invoke("upload-image", fileData);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    },
+
+    // bill templates
+    createBillTemplate: async (data) => {
+        try {
+            return await ipcRenderer.invoke("create-bill-template", data);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    },
+    updateBillTemplate: async (data) => {
+        try {
+            return await ipcRenderer.invoke("update-bill-template", data);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    },
+    getAllBillTemplates: async () => {
+        try {
+            return await ipcRenderer.invoke("get-all-bill-templates");
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    },
+
+    // Authentication
+    login: async (credentials) => {
+        try {
+            return await ipcRenderer.invoke("login", credentials);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
 });

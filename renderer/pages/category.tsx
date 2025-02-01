@@ -453,9 +453,10 @@ const CategoryPage = () => {
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         title="Delete Category"
-        itemName={categoryToDelete?.name || ""}
+        message="Are you sure you want to delete this category? This action cannot be undone."
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
+        requireAdminPassword={false}
       />
     </Layout>
   );

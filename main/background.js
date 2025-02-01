@@ -15,7 +15,18 @@ import {
     orderHandlers,
     holdOrderHandlers,
     paymentHandlers,
+    userHandlers,
+    roleHandlers,
+    billTemplateHandlers,
 } from "./ipc/handlers";
+import {
+    autoUpdater,
+    AppUpdater
+} from "electron-updater";
+
+// basic flags for app update
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -42,6 +53,15 @@ if (isProd) {
             callback({
                 path: filePath,
             });
+        });
+        autoUpdater.checkForUpdates();
+    });
+
+    autoUpdater.on("update-downloaded", () => {
+        dialog.showMessageBox({
+            type: "info",
+            title: "Update Downloaded",
+            message: "A new version has been downloaded. Restart the app to apply changes.",
         });
     });
 } else {
@@ -82,6 +102,46 @@ const registerIpcHandlers = () => {
 
     // Payments
     ipcMain.handle("save-payment", paymentHandlers.savePayment);
+    ipcMain.handle("get-all-payments", paymentHandlers.getAllPayments);
+    ipcMain.handle("get-payment-by-id", paymentHandlers.getPaymentById);
+    ipcMain.handle(
+        "get-payment-by-order-id",
+        paymentHandlers.getPaymentByOrderId
+    );
+    ipcMain.handle("search-payments", paymentHandlers.searchPayments);
+
+    // User management
+    ipcMain.handle("getAllUsers", userHandlers.getAllUsers);
+    ipcMain.handle("createUser", (event, data) =>
+        userHandlers.createUser(event, data)
+    );
+    ipcMain.handle("updateUser", (event, data) =>
+        userHandlers.updateUser(event, data)
+    );
+    ipcMain.handle("deleteUser", (event, data) =>
+        userHandlers.deleteUser(event, data)
+    );
+    ipcMain.handle("resetUserPassword", (event, data) =>
+        userHandlers.resetUserPassword(event, data)
+    );
+    ipcMain.handle("login", userHandlers.login);
+
+    // Role handlers
+    ipcMain.handle("get-all-roles", roleHandlers.getAllRoles);
+
+    // Bill Templates
+    ipcMain.handle(
+        "create-bill-template",
+        billTemplateHandlers.createBillTemplate
+    );
+    ipcMain.handle(
+        "get-all-bill-templates",
+        billTemplateHandlers.getAllBillTemplates
+    );
+    ipcMain.handle(
+        "update-bill-template",
+        billTemplateHandlers.updateBillTemplate
+    );
 };
 
 (async () => {
@@ -100,10 +160,10 @@ const registerIpcHandlers = () => {
     registerIpcHandlers();
 
     if (isProd) {
-        await mainWindow.loadURL("app://./dashboard");
+        await mainWindow.loadURL("app://./login");
     } else {
         const port = process.argv[2];
-        await mainWindow.loadURL(`http://localhost:${port}/dashboard`);
+        await mainWindow.loadURL(`http://localhost:${port}/login`);
         // mainWindow.webContents.openDevTools()
     }
 })();
