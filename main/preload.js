@@ -436,5 +436,18 @@ contextBridge.exposeInMainWorld("electron", {
                 error: error.message
             };
         }
-    }
+    },
+
+    // Authentication
+    login: async (credentials) => {
+        try {
+            return await ipcRenderer.invoke("login", credentials);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
 });

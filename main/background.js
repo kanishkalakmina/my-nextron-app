@@ -107,6 +107,7 @@ const registerIpcHandlers = () => {
     ipcMain.handle("resetUserPassword", (event, data) =>
         userHandlers.resetUserPassword(event, data)
     );
+    ipcMain.handle("login", userHandlers.login);
 
     // Role handlers
     ipcMain.handle("get-all-roles", roleHandlers.getAllRoles);

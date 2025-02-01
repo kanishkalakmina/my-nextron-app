@@ -3,10 +3,12 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import Head from 'next/head';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { useIPC } from '../hooks/useIPC';
 
 const Login = () => {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login: authLogin } = useAuth();
+  const { login: ipcLogin } = useIPC();
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -33,15 +35,20 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      if (formData.username === 'admin' && formData.password === 'admin123') {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        login();
+      const result = await ipcLogin({
+        username: formData.username,
+        password: formData.password
+      });
+
+      if (result.success) {
+        authLogin(); // Update auth context
         router.push('/dashboard');
       } else {
-        setError('Invalid username or password');
+        setError(result.error || 'Invalid username or password');
       }
     } catch (error) {
       setError('An error occurred. Please try again.');
+      console.error('Login error:', error);
     } finally {
       setIsLoading(false);
     }

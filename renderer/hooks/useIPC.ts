@@ -4,6 +4,12 @@ import { useState } from "react";
 declare global {
   interface Window {
     electron: {
+      // login
+      login: (credentials: { username: string; password: string }) => Promise<{
+        success: boolean;
+        token?: string;
+        error?: string;
+      }>;
       // Categories
       createCategory: (data: {
         name: string;
@@ -881,9 +887,22 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const login = async (credentials: { username: string; password: string }) => {
+    try {
+      return await window.electron.login(credentials);
+    } catch (error) {
+      console.error("Login error:", error);
+      return {
+        success: false,
+        error: error.message || "An error occurred during login",
+      };
+    }
+  };
+
   return {
     loading,
     error,
+    login,
     // Categories
     createCategory,
     getAllCategories,
