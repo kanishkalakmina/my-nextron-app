@@ -4,6 +4,10 @@ import {
     fileURLToPath
 } from "url";
 import fs from "fs";
+import bcrypt from "bcrypt";
+import {
+    v4 as uuidv4
+} from "uuid";
 
 const __filename = fileURLToPath(
     import.meta.url);
@@ -33,16 +37,21 @@ if (isProd) {
         fs.mkdirSync(dbDir, {
             recursive: true,
         });
-        console.log("Created database directory:", dbDir);
     }
 }
 
-let db;
-try {
-    db = new Database(dbPath);
+// Initialize database connection
+const db = new Database(dbPath);
 
+try {
     // Initialize tables only if they don't exist
     db.exec(`
+    -- Create roles table
+    CREATE TABLE IF NOT EXISTS roles (
+      role_id TEXT PRIMARY KEY,
+      role_name TEXT NOT NULL UNIQUE
+    );
+
     -- Create categories table if not exists
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
@@ -124,16 +133,116 @@ try {
       FOREIGN KEY (payment_id) REFERENCES payments(id),
       FOREIGN KEY (product_id) REFERENCES products(id)
     );
+
+       -- Create users table
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      full_name TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'inactive', 'suspended')),
+      login_attempts INTEGER DEFAULT 0,
+      last_login DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      created_by TEXT,
+      password_reset_token TEXT,
+      password_reset_expires DATETIME,
+      FOREIGN KEY (role_id) REFERENCES roles(role_id)
+    );
+
+    -- Create bill_templates table
+    CREATE TABLE IF NOT EXISTS bill_templates (
+      id TEXT PRIMARY KEY,
+      company_name TEXT NOT NULL,
+      address TEXT,
+      phone TEXT,
+      email TEXT,
+      website TEXT,
+      tax_id TEXT,
+      footer_text TEXT,
+      show_logo INTEGER DEFAULT 1,
+      show_tax_id INTEGER DEFAULT 1,
+      show_footer INTEGER DEFAULT 1,
+      logo_path TEXT,
+      bill_width INTEGER DEFAULT 600,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
     // Enable foreign key support
     db.exec("PRAGMA foreign_keys = ON;");
-
-    console.log("Database initialized successfully at:", dbPath);
 } catch (error) {
     console.error("Database initialization error:", error);
     throw error;
 }
+
+// Insert default roles if they don't exist
+try {
+    const insertRole = db.prepare(`
+        INSERT OR IGNORE INTO roles (role_id, role_name)
+        VALUES (?, ?)
+    `);
+
+    // Insert Administrator role
+    insertRole.run(uuidv4(), "Administrator");
+    insertRole.run(uuidv4(), "Manager");
+    insertRole.run(uuidv4(), "Staff");
+    insertRole.run(uuidv4(), "Cashier");
+} catch (error) {
+    console.error("Error initializing default roles:", error);
+}
+
+// Enable foreign key support
+db.exec("PRAGMA foreign_keys = ON;");
+
+// Create default admin user if not exists
+const createDefaultAdmin = db.prepare(`
+    INSERT OR IGNORE INTO users (
+      id, username, password, full_name, role_id, status
+    ) VALUES (?, ?, ?, ?, (SELECT role_id FROM roles WHERE role_name = 'Administrator'), ?)
+  `);
+
+createDefaultAdmin.run(
+    uuidv4(),
+    "admin",
+    bcrypt.hashSync("password", 10),
+    "System Administrator",
+    "active"
+);
+
+// Insert demo bill template if none exists
+const billTemplateCount = db
+    .prepare("SELECT COUNT(*) as count FROM bill_templates")
+    .get();
+if (billTemplateCount.count === 0) {
+    const demoTemplateId = uuidv4();
+    db.prepare(
+        `
+        INSERT INTO bill_templates (
+            id, company_name, address, phone, email, website, 
+            tax_id, footer_text, show_logo, show_tax_id, show_footer, 
+            logo_path, bill_width
+        ) VALUES (
+            ?, 'Demo Company', '123 Demo Street, Demo City', '+1234567890',
+            'demo@company.com', '', 'TAX-12345',
+            'Thank you for your business!', 1, 1, 1, '', 600
+        )
+    `
+    ).run(demoTemplateId);
+}
+
+// Role queries
+const roleQueries = {
+    getAll: db.prepare("SELECT * FROM roles"),
+    getById: db.prepare("SELECT * FROM roles WHERE role_id = ?"),
+    getRoleName: db.prepare("SELECT role_name FROM roles WHERE role_id = ?"),
+    getRolePermissions: db.prepare(
+        "SELECT role_name FROM roles WHERE role_id = ?"
+    ),
+};
 
 // Categories CRUD
 const categoryQueries = {
@@ -306,11 +415,88 @@ const invoicedItemQueries = {
   `),
 };
 
+// Users CRUD
+const userQueries = {
+    create: db.prepare(`
+  INSERT INTO users (id, username, password, full_name, role_id, status)
+  VALUES (?, ?, ?, ?, ?, ?)
+`),
+    getAll: db.prepare("SELECT * FROM users ORDER BY created_at DESC"),
+    getById: db.prepare("SELECT * FROM users WHERE id = ?"),
+    getByUsername: db.prepare("SELECT * FROM users WHERE username = ?"),
+    update: db.prepare(`
+  UPDATE users 
+  SET username = ?, 
+      full_name = ?, 
+      role_id = ?,
+      status = ?,
+      updated_at = CURRENT_TIMESTAMP 
+  WHERE id = ?
+`),
+    updatePassword: db.prepare(`
+  UPDATE users 
+  SET password = ?, 
+      updated_at = CURRENT_TIMESTAMP 
+  WHERE id = ?
+`),
+    updateLoginAttempts: db.prepare(`
+  UPDATE users 
+  SET login_attempts = login_attempts + 1,
+      updated_at = CURRENT_TIMESTAMP 
+  WHERE username = ?
+`),
+    resetLoginAttempts: db.prepare(`
+  UPDATE users 
+  SET login_attempts = 0,
+      updated_at = CURRENT_TIMESTAMP 
+  WHERE username = ?
+`),
+    updateLastLogin: db.prepare(`
+  UPDATE users 
+  SET last_login = CURRENT_TIMESTAMP,
+      updated_at = CURRENT_TIMESTAMP 
+  WHERE username = ?
+`),
+    delete: db.prepare("DELETE FROM users WHERE id = ?"),
+    search: db.prepare(`
+  SELECT * FROM users WHERE username LIKE ? ORDER BY created_at DESC
+`),
+    findByUsername: db.prepare("SELECT * FROM users WHERE username = ?"),
+    verifyPassword: (hashedPassword, plainTextPassword) => {
+        return bcrypt.compareSync(plainTextPassword, hashedPassword);
+    },
+};
+
+// Bill Template queries
+const billTemplateQueries = {
+    create: db.prepare(`
+        INSERT INTO bill_templates (
+            id, company_name, address, phone, email, website, 
+            tax_id, footer_text, show_logo, show_tax_id, show_footer, 
+            logo_path, bill_width
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `),
+    update: db.prepare(`
+        UPDATE bill_templates 
+        SET company_name = ?, address = ?, phone = ?, email = ?, website = ?,
+            tax_id = ?, footer_text = ?, show_logo = ?, show_tax_id = ?, 
+            show_footer = ?, logo_path = ?, bill_width = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+    `),
+    getAll: db.prepare("SELECT * FROM bill_templates ORDER BY created_at DESC"),
+    getById: db.prepare("SELECT * FROM bill_templates WHERE id = ?"),
+    delete: db.prepare("DELETE FROM bill_templates WHERE id = ?"),
+};
+
 export {
     categoryQueries,
     productQueries,
     orderQueries,
+    userQueries,
+    roleQueries,
     holdOrderQueries,
     paymentQueries,
     invoicedItemQueries,
+    billTemplateQueries,
 };

@@ -188,8 +188,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       if (!result.success) {
         throw new Error(result.error || "Failed to save payment");
       }
-
-      toast.success("Payment completed successfully");
       printBill();
       onPaymentComplete();
       onClose();

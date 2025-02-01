@@ -4,6 +4,12 @@ import { useState } from "react";
 declare global {
   interface Window {
     electron: {
+      // login
+      login: (credentials: { username: string; password: string }) => Promise<{
+        success: boolean;
+        token?: string;
+        error?: string;
+      }>;
       // Categories
       createCategory: (data: {
         name: string;
@@ -172,7 +178,169 @@ declare global {
         status: string;
         created_at: string;
       }) => Promise<{ success: boolean; error?: string }>;
+
+      getAllPayments: () => Promise<{
+        success: boolean;
+        payments?: Array<{
+          id: string;
+          order_id: string;
+          amount: number;
+          payment_method: string;
+          payment_date: string;
+          subtotal: number;
+          discount: number;
+          tax: number;
+          total: number;
+          amount_received: number;
+          change_amount: number;
+          status: string;
+          created_at: string;
+        }>;
+        error?: string;
+      }>;
+
+      // User management
+      createUser: (data: {
+        username: string;
+        password: string;
+        full_name: string;
+        role_id: string;
+        status: "active" | "inactive" | "suspended";
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      getAllUsers: () => Promise<{
+        success: boolean;
+        users?: Array<{
+          id: string;
+          username: string;
+          full_name: string;
+          role_id: string;
+          role_name: string;
+          status: "active" | "inactive" | "suspended";
+          last_login?: string;
+          created_at: string;
+        }>;
+        error?: string;
+      }>;
+
+      updateUser: (data: {
+        id: string;
+        username: string;
+        password?: string;
+        full_name: string;
+        role_id: string;
+        status: "active" | "inactive" | "suspended";
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      deleteUser: (data: {
+        id: string;
+        adminPassword: string;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      resetUserPassword: (data: {
+        id: string;
+        username: string;
+        adminPassword: string;
+        newPassword: string;
+        resetMethod: "admin" | "self";
+        currentPassword?: string;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      validateResetToken: (data: { token: string }) => Promise<{
+        success: boolean;
+        userId?: string;
+        error?: string;
+      }>;
+
+      getAllRoles: () => Promise<{
+        success: boolean;
+        roles?: any[];
+        error?: string;
+      }>;
+
+      resetPassword: (data: {
+        username: string;
+        newPassword: string;
+        adminPassword: string;
+        resetMethod: "admin" | "self";
+        currentPassword?: string;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      createBillTemplate: (data: {
+        companyName: string;
+        address: string;
+        phone: string;
+        email: string;
+        website: string;
+        taxId: string;
+        footerText: string;
+        showLogo: boolean;
+        showTaxId: boolean;
+        showFooter: boolean;
+        logoPath: string; // Updated to match the new column name
+        billWidth: number;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      updateBillTemplate: (data: {
+        id: string;
+        company_name: string;
+        address: string;
+        phone: string;
+        email: string;
+        website: string;
+        tax_id: string;
+        footer_text: string;
+        show_logo: boolean;
+        show_tax_id: boolean;
+        show_footer: boolean;
+        logo_path: string; // Updated to match the new column name
+        bill_width: number;
+      }) => Promise<{ success: boolean; error?: string }>;
+
+      getAllBillTemplates: () => Promise<{
+        success: boolean;
+        templates?: Array<{
+          id: string;
+          company_name: string;
+          address: string;
+          phone: string;
+          email: string;
+          website: string;
+          tax_id: string;
+          footer_text: string;
+          show_logo: number;
+          show_tax_id: number;
+          show_footer: number;
+          logo_path: string;
+          bill_width: number;
+          created_at: string;
+          updated_at: string;
+        }>;
+        error?: string;
+      }>;
     };
+
+    getAllBillTemplates: () => Promise<{
+      success: boolean;
+      templates?: Array<{
+        id: string;
+        company_name: string;
+        address: string;
+        phone: string;
+        email: string;
+        website: string;
+        tax_id: string;
+        footer_text: string;
+        show_logo: number;
+        show_tax_id: number;
+        show_footer: number;
+        logo_path: string;
+        bill_width: number;
+        created_at: string;
+        updated_at: string;
+      }>;
+      error?: string;
+    }>;
   }
 }
 
@@ -507,6 +675,112 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  // User management
+  const createUser = async (data: any) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.createUser(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to create user");
+        return null;
+      }
+      return result;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAllUsers = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllUsers();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch users");
+        return [];
+      }
+      return result.users;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateUser = async (data: any) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.updateUser(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to update user");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteUser = async (data: { id: string; adminPassword: string }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.deleteUser(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to delete user");
+        return null;
+      }
+      return result.success;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetUserPassword = async (data: {
+    id: string;
+    username: string;
+    adminPassword: string;
+    newPassword: string;
+    resetMethod: "admin" | "self";
+    currentPassword?: string;
+  }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.resetUserPassword(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to reset user password");
+        return null;
+      }
+      return result.success;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const validateResetToken = async (data: { token: string }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.validateResetToken(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to validate reset token");
+        return null;
+      }
+      return result;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAllRoles = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllRoles();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch roles");
+        return [];
+      }
+      return result.roles;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const savePayment = async (data: {
     order_id: string;
     amount: number;
@@ -534,9 +808,101 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const getAllPayments = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllPayments();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch payments");
+        return [];
+      }
+      return result.payments;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getAllBillTemplates = async () => {
+    setLoading(true);
+    try {
+      const result = await window.electron.getAllBillTemplates();
+      if (!result.success) {
+        handleError(result.error || "Failed to fetch bill templates");
+        return [];
+      }
+      return result.templates;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateBillTemplate = async (
+    id: string,
+    data: Omit<
+      {
+        company_name: string;
+        address: string;
+        phone: string;
+        email: string;
+        website: string;
+        tax_id: string;
+        footer_text: string;
+        show_logo: boolean;
+        show_tax_id: boolean;
+        show_footer: boolean;
+        logo_path: string;
+        bill_width: number;
+      },
+      "id"
+    >
+  ) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.updateBillTemplate({ id, ...data });
+      if (!result.success) {
+        handleError(result.error || "Failed to update bill template");
+        return false;
+      }
+      return true;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const uploadImage = async (data: {
+    name: string;
+    type: string;
+    data: number[];
+  }) => {
+    setLoading(true);
+    try {
+      const result = await window.electron.uploadImage(data);
+      if (!result.success) {
+        handleError(result.error || "Failed to upload image");
+        return null;
+      }
+      return result.filePath;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (credentials: { username: string; password: string }) => {
+    try {
+      return await window.electron.login(credentials);
+    } catch (error) {
+      console.error("Login error:", error);
+      return {
+        success: false,
+        error: error.message || "An error occurred during login",
+      };
+    }
+  };
+
   return {
     loading,
     error,
+    login,
     // Categories
     createCategory,
     getAllCategories,
@@ -561,5 +927,20 @@ export function useIPC(options: UseIPCOptions = {}) {
     getAllHoldOrders,
     deleteHoldOrder,
     savePayment,
+    getAllPayments,
+
+    // User management
+    createUser,
+    getAllUsers,
+    updateUser,
+    deleteUser,
+    resetUserPassword,
+    validateResetToken,
+    getAllRoles,
+
+    // Bill templates
+    getAllBillTemplates,
+    updateBillTemplate,
+    uploadImage,
   };
 }

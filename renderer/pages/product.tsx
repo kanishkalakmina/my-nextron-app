@@ -1,4 +1,4 @@
-import path from 'path';
+import path from "path";
 import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import {
@@ -287,9 +287,9 @@ const ProductPage = () => {
   };
 
   const getImageUrl = (imagePath: string) => {
-    if (!imagePath) return '';
-    
-    if (process.env.NODE_ENV === 'production') {
+    if (!imagePath) return "";
+
+    if (process.env.NODE_ENV === "production") {
       // Use custom protocol in production
       return `upload://${path.basename(imagePath)}`;
     }
@@ -642,7 +642,9 @@ const ProductPage = () => {
                                   src={
                                     productForm.image
                                       ? URL.createObjectURL(productForm.image)
-                                      : getImageUrl(productForm.existingImagePath || '')
+                                      : getImageUrl(
+                                          productForm.existingImagePath || ""
+                                        )
                                   }
                                   alt="Product preview"
                                   className="w-full h-full object-cover"
@@ -731,9 +733,10 @@ const ProductPage = () => {
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
         title="Delete Product"
-        itemName={productToDelete?.name || ""}
+        message="Are you sure you want to delete this product? This action cannot be undone."
         onConfirm={handleDeleteConfirm}
         onCancel={handleDeleteCancel}
+        requireAdminPassword={false}
       />
     </Layout>
   );

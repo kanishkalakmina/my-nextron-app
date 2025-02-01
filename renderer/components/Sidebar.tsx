@@ -14,19 +14,64 @@ import {
   CalculatorIcon,
   CurrencyDollarIcon,
 } from "@heroicons/react/24/outline";
+import { hasPageAccess } from "../utils/roleAccess";
+import { Pages, PageRoutes, PageTitles } from "../utils/pages";
 
 const navigation = [
-  { name: "Point of Sale", href: "/dashboard", icon: CalculatorIcon },
-  { name: "Categories", href: "/category", icon: TagIcon },
-  { name: "Products", href: "/product", icon: CubeIcon },
-  { name: "Open Orders", href: "/orders", icon: ShoppingCartIcon },
-  { name: "Transactions", href: "/transactions", icon: CurrencyDollarIcon },
-  { name: "Reports", href: "/reports", icon: ChartBarIcon },
-  { name: "Settings", href: "/settings", icon: CogIcon },
+  {
+    name: PageTitles[Pages.POINT_OF_SALE],
+    href: PageRoutes[Pages.POINT_OF_SALE],
+    icon: CalculatorIcon,
+    page: Pages.POINT_OF_SALE,
+  },
+  {
+    name: PageTitles[Pages.CATEGORIES],
+    href: PageRoutes[Pages.CATEGORIES],
+    icon: TagIcon,
+    page: Pages.CATEGORIES,
+  },
+  {
+    name: PageTitles[Pages.PRODUCTS],
+    href: PageRoutes[Pages.PRODUCTS],
+    icon: CubeIcon,
+    page: Pages.PRODUCTS,
+  },
+  {
+    name: PageTitles[Pages.ORDERS],
+    href: PageRoutes[Pages.ORDERS],
+    icon: ShoppingCartIcon,
+    page: Pages.ORDERS,
+  },
+  {
+    name: PageTitles[Pages.TRANSACTIONS],
+    href: PageRoutes[Pages.TRANSACTIONS],
+    icon: CurrencyDollarIcon,
+    page: Pages.TRANSACTIONS,
+  },
+  {
+    name: PageTitles[Pages.USERS],
+    href: PageRoutes[Pages.USERS],
+    icon: UserGroupIcon,
+    page: Pages.USERS,
+  },
+  {
+    name: PageTitles[Pages.REPORTS],
+    href: PageRoutes[Pages.REPORTS],
+    icon: ChartBarIcon,
+    page: Pages.REPORTS,
+  },
+  {
+    name: PageTitles[Pages.SETTINGS],
+    href: PageRoutes[Pages.SETTINGS],
+    icon: CogIcon,
+    page: Pages.SETTINGS,
+  },
 ];
 
 export default function Sidebar() {
   const router = useRouter();
+  const userRole =
+    typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -54,6 +99,9 @@ export default function Sidebar() {
       setIsCollapsed(!isCollapsed);
     }
   };
+  const filteredNavigation = navigation.filter(
+    (item) => userRole && hasPageAccess(userRole, item.page)
+  );
 
   return (
     <div
@@ -63,7 +111,10 @@ export default function Sidebar() {
     >
       <div className="flex h-16 flex-shrink-0 items-center justify-between border-b px-4">
         {!isCollapsed && (
-          <h1 className="text-2xl font-bold text-blue-500" style={{ fontFamily: "'Dancing Script', cursive" }}>
+          <h1
+            className="text-2xl font-bold text-blue-500"
+            style={{ fontFamily: "'Dancing Script', cursive" }}
+          >
             𝓑𝓲𝓼𝓽𝓻𝓸
           </h1>
         )}
@@ -82,7 +133,7 @@ export default function Sidebar() {
       </div>
       <div className="h-[calc(100vh-4rem)] overflow-y-auto">
         <nav className="space-y-1 px-2 py-2">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = router.pathname === item.href;
             return (
               <Link
