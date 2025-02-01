@@ -3,36 +3,37 @@ name: Build/release
 on:
   push:
     tags:
-      - "v*" # Trigger the workflow only on version tags (e.g., v1.0.0)
+      - "v*" # Push events on tags that match 'v*.*.*'
 
 jobs:
   release:
     runs-on: windows-latest
 
+    strategy:
+      matrix:
+        os: [windows-latest]
+
     steps:
       - name: Check out Git repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v1
 
       - name: Install Node.js, NPM and Yarn
         uses: actions/setup-node@v1
         with:
           node-version: 20
 
-      - name: Install dependencies
-        run: npm install
-
       - name: Build Electron app
-        run: npm run build # Make sure this triggers the electron-builder process
+        run: |
+          npm install
+          npm run build
 
       - name: Build/release Electron app
         uses: samuelmeuli/action-electron-builder@v1
         with:
+          # GitHub token, automatically provided to the action
+          # (No need to define this secret in the repo settings)
           github_token: ${{ secrets.github_token }}
-          release: true # This will create a release if the commit is tagged
 
-      - name: Create GitHub Release and upload the .exe
-        uses: softprops/action-gh-release@v1
-        with:
-          files: dist/**/*.exe # Path to the .exe file (ensure it's built and available in dist/)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # If the commit is tagged with a version (e.g. "v1.0.0"),
+          # release the app after building
+          release: ${{ startsWith(github.ref, 'refs/tags/v') }}
