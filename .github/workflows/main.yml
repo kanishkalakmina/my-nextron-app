@@ -1,6 +1,9 @@
 name: Build/release
 
-on: push
+on:
+  push:
+    tags:
+      - "v*" # Push events on tags that match 'v*.*.*'
 
 jobs:
   release:
@@ -18,6 +21,11 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 20
+
+      - name: Build Electron app
+        run: |
+          npm install
+          npm run build
 
       - name: Build/release Electron app
         uses: samuelmeuli/action-electron-builder@v1
