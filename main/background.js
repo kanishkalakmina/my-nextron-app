@@ -19,6 +19,14 @@ import {
     roleHandlers,
     billTemplateHandlers,
 } from "./ipc/handlers";
+import {
+    autoUpdater,
+    AppUpdater
+} from "electron-updater";
+
+// basic flags for app update
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
 
 const isProd = process.env.NODE_ENV === "production";
 
@@ -45,6 +53,15 @@ if (isProd) {
             callback({
                 path: filePath,
             });
+        });
+        autoUpdater.checkForUpdates();
+    });
+
+    autoUpdater.on("update-downloaded", () => {
+        dialog.showMessageBox({
+            type: "info",
+            title: "Update Downloaded",
+            message: "A new version has been downloaded. Restart the app to apply changes.",
         });
     });
 } else {
@@ -113,9 +130,18 @@ const registerIpcHandlers = () => {
     ipcMain.handle("get-all-roles", roleHandlers.getAllRoles);
 
     // Bill Templates
-    ipcMain.handle("create-bill-template", billTemplateHandlers.createBillTemplate);
-    ipcMain.handle("get-all-bill-templates", billTemplateHandlers.getAllBillTemplates);
-    ipcMain.handle("update-bill-template", billTemplateHandlers.updateBillTemplate);
+    ipcMain.handle(
+        "create-bill-template",
+        billTemplateHandlers.createBillTemplate
+    );
+    ipcMain.handle(
+        "get-all-bill-templates",
+        billTemplateHandlers.getAllBillTemplates
+    );
+    ipcMain.handle(
+        "update-bill-template",
+        billTemplateHandlers.updateBillTemplate
+    );
 };
 
 (async () => {
