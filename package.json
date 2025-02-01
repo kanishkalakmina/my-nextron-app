@@ -2,7 +2,7 @@
     "private": true,
     "name": "my-nextron-app",
     "description": "My application description",
-    "version": "1.0.3",
+    "version": "1.0.6",
     "author": "Lakmina Egodawattha <kanishkalakmina@gmail.com>",
     "main": "app/background.js",
     "scripts": {
@@ -10,10 +10,18 @@
         "build": "nextron build",
         "postinstall": "electron-builder install-app-deps"
     },
-    "repository": "https://github.com/kanishkalakmina/my-nextron-app",
-    "publish": {
-        "provider": "github",
-        "releaseType": "tag"
+    "build": {
+        "productName": "my-nextron-app",
+        "appId": "com.yourcompany.myapp",
+        "directories": {
+            "buildResources": "resources",
+            "output": "dist"
+        },
+        "win": {
+            "target": [
+                "nsis"
+            ]
+        }
     },
     "dependencies": {
         "@headlessui/react": "^1.7.18",

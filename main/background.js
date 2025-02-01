@@ -25,7 +25,7 @@ import {
 } from "electron-updater";
 
 // basic flags for app update
-autoUpdater.autoDownload = true;
+autoUpdater.autoDownload = false;
 autoUpdater.autoInstallOnAppQuit = true;
 
 const isProd = process.env.NODE_ENV === "production";
@@ -37,6 +37,7 @@ if (isProd) {
 
     // Register protocol for serving images from AppData
     app.whenReady().then(() => {
+        autoUpdater.checkForUpdates();
         protocol.registerFileProtocol("upload", (request, callback) => {
             const appDataPath =
                 process.env.APPDATA ||
@@ -54,15 +55,51 @@ if (isProd) {
                 path: filePath,
             });
         });
-        autoUpdater.checkForUpdates();
+    });
+
+    autoUpdater.on("update-available", () => {
+        dialog
+            .showMessageBox({
+                type: "info",
+                title: "Update Available",
+                message: "A new version of the app is available. Do you want to update?",
+                buttons: ["Yes", "No"],
+            })
+            .then((result) => {
+                if (result.response === 0) {
+                    autoUpdater.downloadUpdate();
+                }
+            });
     });
 
     autoUpdater.on("update-downloaded", () => {
-        dialog.showMessageBox({
-            type: "info",
-            title: "Update Downloaded",
-            message: "A new version has been downloaded. Restart the app to apply changes.",
-        });
+        dialog
+            .showMessageBox({
+                type: "info",
+                title: "Update Downloaded",
+                message: "The update has been downloaded. Restart the app to apply the update.",
+                buttons: ["Restart"],
+            })
+            .then((result) => {
+                if (result.response === 0) {
+                    autoUpdater.quitAndInstall();
+                }
+            });
+    });
+
+    autoUpdater.on("update-downloaded", () => {
+        dialog
+            .showMessageBox({
+                type: "info",
+                title: "Update Downloaded",
+                message: "The update has been downloaded. Restart the app to apply the update.",
+                buttons: ["Restart"],
+            })
+            .then((result) => {
+                if (result.response === 0) {
+                    autoUpdater.quitAndInstall();
+                }
+            });
     });
 } else {
     app.setPath("userData", `${app.getPath("userData")} (development)`);
