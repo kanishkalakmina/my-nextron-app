@@ -1,56 +1,317 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import { ChartBarIcon, DocumentChartBarIcon, CurrencyDollarIcon, ShoppingCartIcon } from '@heroicons/react/24/outline';
+import { ChartBarIcon, DocumentChartBarIcon, CurrencyDollarIcon, ShoppingCartIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { format, startOfDay, endOfDay, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import Layout from '../components/Layout';
-import toast from 'react-hot-toast';
+import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
-interface DailyIncome {
-  date: string;
-  total_transactions: number;
-  total_amount: number;
-  total_discount: number;
-  total_tax: number;
+interface SalesData {
+  dailySales: Array<{
+    date: string;
+    transaction_count: number;
+    total_sales: number;
+    total_discounts: number;
+    total_tax: number;
+  }>;
+  productSales: Array<{
+    product_id: string;
+    product_name: string;
+    category_name: string;
+    total_quantity: number;
+    total_sales: number;
+  }>;
+  hourlySales: Array<{
+    hour: string;
+    transaction_count: number;
+    total_sales: number;
+  }>;
+  categorySales: Array<{
+    category_name: string;
+    transaction_count: number;
+    items_sold: number;
+    total_sales: number;
+  }>;
 }
 
-const ReportsPage = () => {
-  const [dailyIncome, setDailyIncome] = useState<DailyIncome[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [dateRange, setDateRange] = useState({
-    startDate: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
-    endDate: new Date().toISOString().split('T')[0]
-  });
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
-  const fetchDailyIncome = async () => {
+const ReportsPage = () => {
+  const [activeTab, setActiveTab] = useState('sales');
+  const [dateRange, setDateRange] = useState({
+    start: format(startOfDay(subDays(new Date(), 7)), 'yyyy-MM-dd'),
+    end: format(endOfDay(new Date()), 'yyyy-MM-dd')
+  });
+  const [reportType, setReportType] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [salesData, setSalesData] = useState<SalesData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
+
+  useEffect(() => {
+    if (activeTab === 'sales') {
+      fetchSalesData();
+    }
+  }, [dateRange, reportType, activeTab]);
+
+  const fetchSalesData = async () => {
     try {
       setIsLoading(true);
-      const result = await window.electron.getDailyIncome();
+      const result = await window.electron.getSalesData({
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+        reportType
+      });
+
       if (result.success) {
-        setDailyIncome(result.data);
+        setSalesData(result.data);
       } else {
-        throw new Error(result.error || 'Failed to fetch daily income');
+        throw new Error(result.error);
       }
     } catch (error) {
-      console.error('Error fetching daily income:', error);
-      toast.error('Failed to load income data');
+      console.error('Error fetching sales data:', error);
+      // You might want to show an error toast here
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDailyIncome();
-  }, []);
+  const exportToExcel = () => {
+    if (!salesData) return;
 
-  const calculateTotals = () => {
-    return dailyIncome.reduce((acc, day) => ({
-      transactions: acc.transactions + day.total_transactions,
-      amount: acc.amount + day.total_amount,
-      discount: acc.discount + day.total_discount,
-      tax: acc.tax + day.total_tax
-    }), { transactions: 0, amount: 0, discount: 0, tax: 0 });
+    const workbook = XLSX.utils.book_new();
+
+    // Daily Sales Sheet
+    const dailySalesWS = XLSX.utils.json_to_sheet(salesData.dailySales);
+    XLSX.utils.book_append_sheet(workbook, dailySalesWS, 'Daily Sales');
+
+    // Product Sales Sheet
+    const productSalesWS = XLSX.utils.json_to_sheet(salesData.productSales);
+    XLSX.utils.book_append_sheet(workbook, productSalesWS, 'Product Sales');
+
+    // Category Sales Sheet
+    const categorySalesWS = XLSX.utils.json_to_sheet(salesData.categorySales);
+    XLSX.utils.book_append_sheet(workbook, categorySalesWS, 'Category Sales');
+
+    // Save the file
+    XLSX.writeFile(workbook, `sales_report_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
-  const totals = calculateTotals();
+  const exportToPDF = () => {
+    if (!salesData) return;
+
+    const doc = new jsPDF();
+    doc.text('Sales Report', 14, 15);
+    doc.text(`Period: ${dateRange.start} to ${dateRange.end}`, 14, 25);
+
+    // Add daily sales table
+    doc.autoTable({
+      head: [['Date', 'Transactions', 'Total Sales', 'Discounts', 'Tax']],
+      body: salesData.dailySales.map(row => [
+        row.date,
+        row.transaction_count,
+        row.total_sales.toFixed(2),
+        row.total_discounts.toFixed(2),
+        row.total_tax.toFixed(2)
+      ]),
+      startY: 35,
+    });
+
+    doc.save(`sales_report_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+  };
+
+  const renderSalesReport = () => (
+    <div className="space-y-6">
+      {/* Controls */}
+      <div className="bg-white p-4 rounded-lg shadow">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Start Date</label>
+            <input
+              type="date"
+              value={dateRange.start}
+              onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">End Date</label>
+            <input
+              type="date"
+              value={dateRange.end}
+              onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Report Type</label>
+            <select
+              value={reportType}
+              onChange={(e) => setReportType(e.target.value as 'daily' | 'weekly' | 'monthly')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">View Mode</label>
+            <select
+              value={viewMode}
+              onChange={(e) => setViewMode(e.target.value as 'chart' | 'table')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              <option value="chart">Charts</option>
+              <option value="table">Tables</option>
+            </select>
+          </div>
+          <div className="flex items-end space-x-2">
+            <button
+              onClick={exportToExcel}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+              Export Excel
+            </button>
+            <button
+              onClick={exportToPDF}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            >
+              <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+              Export PDF
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        </div>
+      ) : salesData ? (
+        <div className="space-y-6">
+          {/* Daily Sales Chart */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-medium mb-4">Daily Sales Overview</h3>
+            {viewMode === 'chart' ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={salesData.dailySales}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="total_sales" stroke="#8884d8" name="Total Sales" />
+                    <Line type="monotone" dataKey="transaction_count" stroke="#82ca9d" name="Transactions" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transactions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discounts</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {salesData.dailySales.map((row, idx) => (
+                      <tr key={idx}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.date}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.transaction_count}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.total_sales.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.total_discounts.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.total_tax.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Category Sales Chart */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-medium mb-4">Sales by Category</h3>
+            {viewMode === 'chart' ? (
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={salesData.categorySales}
+                      dataKey="total_sales"
+                      nameKey="category_name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      fill="#8884d8"
+                      label
+                    >
+                      {salesData.categorySales.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Items Sold</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {salesData.categorySales.map((row, idx) => (
+                      <tr key={idx}>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.category_name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.items_sold}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.total_sales.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white p-4 rounded-lg shadow">
+          <p className="text-gray-500">No sales data available for the selected period.</p>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderInventoryReport = () => (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h2 className="text-xl font-semibold mb-4">Inventory Reports</h2>
+      <div className="space-y-4">
+        <p className="text-gray-600">Inventory report content will be implemented here...</p>
+      </div>
+    </div>
+  );
+
+  const renderFinanceReport = () => (
+    <div className="bg-white rounded-lg shadow p-6">
+      <h2 className="text-xl font-semibold mb-4">Finance Reports</h2>
+      <div className="space-y-4">
+        <p className="text-gray-600">Finance report content will be implemented here...</p>
+      </div>
+    </div>
+  );
 
   return (
     <Layout>
@@ -58,148 +319,75 @@ const ReportsPage = () => {
         <title>Reports - POS System</title>
       </Head>
 
-      <main className="py-6 px-4 sm:px-6 lg:px-8">
+      <div className="p-6">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+          <p className="mt-2 text-sm text-gray-600">View and analyze your business performance</p>
+        </div>
+
+        {/* Tabs */}
         <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900">Reports</h1>
-          <p className="mt-2 text-sm text-gray-700">
-            View and analyze your business performance with detailed reports
-          </p>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <CurrencyDollarIcon className="h-6 w-6 text-gray-400" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Total Revenue</dt>
-                    <dd className="text-lg font-semibold text-gray-900">Rs. {totals.amount.toFixed(2)}</dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
+          <div className="sm:hidden">
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="block w-full rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+            >
+              <option value="sales">Sales Reports</option>
+              <option value="inventory">Inventory Reports</option>
+              <option value="finance">Finance Reports</option>
+            </select>
           </div>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <ShoppingCartIcon className="h-6 w-6 text-gray-400" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Total Transactions</dt>
-                    <dd className="text-lg font-semibold text-gray-900">{totals.transactions}</dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div className="hidden sm:block">
+            <nav className="flex space-x-4 border-b border-gray-200" aria-label="Tabs">
+              <button
+                onClick={() => setActiveTab('sales')}
+                className={`${
+                  activeTab === 'sales'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } flex items-center px-3 py-2 text-sm font-medium border-b-2`}
+              >
+                <ChartBarIcon className="h-5 w-5 mr-2" />
+                Sales Reports
+              </button>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <DocumentChartBarIcon className="h-6 w-6 text-gray-400" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Total Tax</dt>
-                    <dd className="text-lg font-semibold text-gray-900">Rs. {totals.tax.toFixed(2)}</dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
+              <button
+                onClick={() => setActiveTab('inventory')}
+                className={`${
+                  activeTab === 'inventory'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } flex items-center px-3 py-2 text-sm font-medium border-b-2`}
+              >
+                <ShoppingCartIcon className="h-5 w-5 mr-2" />
+                Inventory Reports
+              </button>
 
-          <div className="bg-white overflow-hidden shadow rounded-lg">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <ChartBarIcon className="h-6 w-6 text-gray-400" />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">Total Discounts</dt>
-                    <dd className="text-lg font-semibold text-gray-900">Rs. {totals.discount.toFixed(2)}</dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
+              <button
+                onClick={() => setActiveTab('finance')}
+                className={`${
+                  activeTab === 'finance'
+                    ? 'border-indigo-500 text-indigo-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } flex items-center px-3 py-2 text-sm font-medium border-b-2`}
+              >
+                <CurrencyDollarIcon className="h-5 w-5 mr-2" />
+                Finance Reports
+              </button>
+            </nav>
           </div>
         </div>
 
-        {/* Daily Income Table */}
-        <div className="mt-8">
-          <div className="sm:flex sm:items-center">
-            <div className="sm:flex-auto">
-              <h2 className="text-xl font-semibold text-gray-900">Daily Income Report</h2>
-              <p className="mt-2 text-sm text-gray-700">
-                A detailed list of daily transactions and revenue.
-              </p>
-            </div>
-          </div>
-          
-          <div className="mt-6 flex flex-col">
-            <div className="-my-2 -mx-4 overflow-x-auto sm:-mx-6 lg:-mx-8">
-              <div className="inline-block min-w-full py-2 align-middle md:px-6 lg:px-8">
-                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-                  <table className="min-w-full divide-y divide-gray-300">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">Date</th>
-                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Transactions</th>
-                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Revenue</th>
-                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Tax</th>
-                        <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Discounts</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {isLoading ? (
-                        <tr>
-                          <td colSpan={5} className="py-4 text-center text-sm text-gray-500">
-                            Loading data...
-                          </td>
-                        </tr>
-                      ) : dailyIncome.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="py-4 text-center text-sm text-gray-500">
-                            No data available
-                          </td>
-                        </tr>
-                      ) : (
-                        dailyIncome.map((day) => (
-                          <tr key={day.date}>
-                            <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-900">
-                              {new Date(day.date).toLocaleDateString()}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                              {day.total_transactions}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                              Rs. {day.total_amount.toFixed(2)}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                              Rs. {day.total_tax.toFixed(2)}
-                            </td>
-                            <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                              Rs. {day.total_discount.toFixed(2)}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Tab Content */}
+        <div className="mt-6">
+          {activeTab === 'sales' && renderSalesReport()}
+          {activeTab === 'inventory' && renderInventoryReport()}
+          {activeTab === 'finance' && renderFinanceReport()}
         </div>
-      </main>
+      </div>
     </Layout>
   );
 };
