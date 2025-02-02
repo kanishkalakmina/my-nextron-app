@@ -44,7 +44,7 @@ const TopBar = () => {
     <div className="bg-white shadow-sm">
       <div className="h-16 flex items-center justify-between px-4">
         <div className="flex-1">
-          <h1 className="text-2xl font-semibold text-gray-800">Point of Sal</h1>
+          <h1 className="text-2xl font-semibold text-gray-800">Point of</h1>
         </div>
 
         {/* User Menu */}

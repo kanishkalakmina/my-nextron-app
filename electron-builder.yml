@@ -9,6 +9,10 @@ files:
     filter:
       - package.json
       - app
+publish:
+  provider: github
+  owner: kanishkalakmina
+  repo: my-nextron-app
 win:
   target:
     - nsis
