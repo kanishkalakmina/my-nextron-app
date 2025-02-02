@@ -22,6 +22,10 @@ jobs:
         with:
           node-version: 20
 
+      - name: Build Electron app
+        run: |
+          npm install
+          npm run build
       - name: Build/release Electron app
         uses: samuelmeuli/action-electron-builder@v1
         with:
