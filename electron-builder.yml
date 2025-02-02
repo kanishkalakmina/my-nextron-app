@@ -14,7 +14,7 @@ publish:
   owner: kanishkalakmina
   repo: my-nextron-app
   releaseType: "tag"
-  token: "${GITHUB_TOKEN}"
+  token: "${GIT_TOKEN}"
 win:
   target:
     - nsis
