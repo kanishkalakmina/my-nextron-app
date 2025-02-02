@@ -4,6 +4,9 @@ copyright: Copyright © 2025 Lakmina Egodawattha
 directories:
   output: dist
   buildResources: resources
+win:
+  target:
+    - nsis
 files:
   - from: .
     filter:

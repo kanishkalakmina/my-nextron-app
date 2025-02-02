@@ -17,7 +17,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // basic flags for app update
-autoUpdater.autoDownload = false;
+autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
 const isProd = process.env.NODE_ENV === "production";
@@ -29,6 +29,7 @@ if (isProd) {
 
   // Register protocol for serving images from AppData
   app.whenReady().then(() => {
+    autoUpdater.checkForUpdates();
     protocol.registerFileProtocol("upload", (request, callback) => {
       const appDataPath =
         process.env.APPDATA ||
@@ -48,14 +49,6 @@ if (isProd) {
     });
   });
 
-  autoUpdater.setFeedURL({
-    provider: "github",
-    owner: "kanishkalakmina",
-    repo: "my-nextron-app",
-    releaseType: "release",
-    token: process.env.GIT_TOKEN,
-  });
-  autoUpdater.checkForUpdates();
   autoUpdater.on("update-available", () => {
     dialog
       .showMessageBox({
