@@ -45,7 +45,7 @@ const TopBar = () => {
       <div className="h-16 flex items-center justify-between px-4">
         <div className="flex-1">
           <h1 className="text-2xl font-semibold text-gray-800">
-            Point of Sale
+            Point of Sale test
           </h1>
         </div>
 
