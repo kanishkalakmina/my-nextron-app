@@ -1,6 +1,6 @@
 appId: com.example.nextron
 productName: My Nextron App
-copyright: Copyright © 2018 Lakmina Egodawattha
+copyright: Copyright © 2025 Lakmina Egodawattha
 directories:
   output: dist
   buildResources: resources
@@ -9,12 +9,4 @@ files:
     filter:
       - package.json
       - app
-publish:
-  provider: github
-  owner: kanishkalakmina
-  repo: my-nextron-app
-  releaseType: "tag"
-  token: "${GIT_TOKEN}"
-win:
-  target:
-    - nsis
+publish: null
