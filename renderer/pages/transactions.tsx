@@ -15,6 +15,7 @@ interface Transaction {
   change_amount: number;
   status: string;
   created_at: string;
+  cashier: string;
 }
 
 export default function Transactions() {
@@ -62,10 +63,12 @@ export default function Transactions() {
   const filterTransactions = () => {
     let filtered = [...transactions];
 
-    // Filter by search query
+    // Filter by search query (both invoice and cashier)
     if (searchQuery.trim()) {
+      const searchLower = searchQuery.toLowerCase();
       filtered = filtered.filter(t => 
-        t.order_id.toLowerCase().includes(searchQuery.toLowerCase())
+        t.order_id.toLowerCase().includes(searchLower) ||
+        (t.cashier && t.cashier.toLowerCase().includes(searchLower))
       );
     }
 
@@ -271,7 +274,7 @@ export default function Transactions() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search invoice..."
+                      placeholder="Search invoice or cashier..."
                       className="w-full h-9 pl-10 pr-4 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-gray-400 transition-colors"
                     />
                   </div>
@@ -405,18 +408,21 @@ export default function Transactions() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Method
                       </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Cashier
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {loading ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-4 text-center">
+                        <td colSpan={7} className="px-6 py-4 text-center">
                           Loading transactions...
                         </td>
                       </tr>
                     ) : currentTransactions.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-6 py-4 text-center">
+                        <td colSpan={7} className="px-6 py-4 text-center">
                           No transactions found
                         </td>
                       </tr>
@@ -440,6 +446,9 @@ export default function Transactions() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {transaction.payment_method || "-"}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {transaction.cashier || "-"}
                           </td>
                         </tr>
                       ))

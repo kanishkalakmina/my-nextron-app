@@ -177,6 +177,7 @@ declare global {
         change_amount: number;
         status: string;
         created_at: string;
+        cashier: string;
       }) => Promise<{ success: boolean; error?: string }>;
 
       getAllPayments: () => Promise<{
@@ -195,6 +196,7 @@ declare global {
           change_amount: number;
           status: string;
           created_at: string;
+          cashier: string;
         }>;
         error?: string;
       }>;
@@ -794,6 +796,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     change_amount: number;
     status: string;
     created_at: string;
+    cashier: string;
   }) => {
     setLoading(true);
     try {
