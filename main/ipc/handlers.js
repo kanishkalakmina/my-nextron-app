@@ -850,6 +850,7 @@ const paymentHandlers = {
                 status,
                 created_at,
                 orderItems,
+                cashier
             } = data;
 
             // Save payment first
@@ -866,8 +867,10 @@ const paymentHandlers = {
                 amount_received,
                 change_amount,
                 status,
-                created_at
+                created_at,
+                cashier,
             );
+
 
             // Save each purchased item
             if (orderItems && Array.isArray(orderItems)) {

@@ -163,10 +163,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       alert("Insufficient amount");
       return;
     }
-
+    const { username: cashier } = JSON.parse(localStorage.getItem("userData") || "{}");
     try {
       // Save payment details to database
       const paymentDetails = {
+
         id: uuidv4(),
         order_id: createTimestampId(),
         amount: total,
@@ -181,6 +182,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         status: "paid",
         created_at: new Date().toISOString(),
         orderItems,
+        cashier: cashier,
       };
 
       const result = await window.electron.savePayment(paymentDetails);

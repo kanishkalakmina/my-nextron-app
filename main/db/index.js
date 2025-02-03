@@ -119,7 +119,8 @@ try {
       amount_received REAL,
       change_amount REAL,
       status TEXT DEFAULT 'completed',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      cashier TEXT NOT NULL
     );
 
     -- Create invoiced_item table if not exists
@@ -174,6 +175,25 @@ try {
 
     // Enable foreign key support
     db.exec("PRAGMA foreign_keys = ON;");
+
+       // Check if cashier column exists in payments table
+       const tableInfo = db.prepare("PRAGMA table_info(payments)").all();
+       const cashierColumnExists = tableInfo.some(column => column.name === 'cashier');
+   
+       if (!cashierColumnExists) {
+           // Add cashier column if it doesn't exist
+           db.exec(`
+             ALTER TABLE payments 
+             ADD COLUMN cashier TEXT DEFAULT 'Unknown';
+           `);
+           
+           // Update existing records to have a default value
+           db.exec(`
+             UPDATE payments 
+             SET cashier = 'Unknown' 
+             WHERE cashier IS NULL;
+           `);
+       }
 } catch (error) {
     console.error("Database initialization error:", error);
     throw error;
@@ -375,10 +395,11 @@ const holdOrderQueries = {
 // Payment CRUD
 const paymentQueries = {
     create: db.prepare(`
-    INSERT INTO payments (id, order_id, amount, payment_method, payment_date, subtotal, discount, tax, total, amount_received, change_amount, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO payments (id, order_id, amount, payment_method, payment_date, subtotal, discount, tax, total, amount_received, change_amount, status, created_at, cashier)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
     getAll: db.prepare("SELECT * FROM payments ORDER BY created_at DESC"),
+
     getById: db.prepare("SELECT * FROM payments WHERE id = ?"),
     getByOrderId: db.prepare("SELECT * FROM payments WHERE order_id = ?"),
     searchPayments: db.prepare(`
