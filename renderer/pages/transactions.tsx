@@ -21,12 +21,23 @@ export default function Transactions() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [rowsPerPage] = useState<number>(10);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<string>('all');
+  const [dateRange, setDateRange] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     loadTransactions();
   }, []);
+
+  useEffect(() => {
+    filterTransactions();
+  }, [transactions, selectedMethod, dateRange, searchQuery]);
 
   const loadTransactions = async () => {
     try {
@@ -48,8 +59,36 @@ export default function Transactions() {
     }
   };
 
+  const filterTransactions = () => {
+    let filtered = [...transactions];
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(t => 
+        t.order_id.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by payment method
+    if (selectedMethod !== 'all') {
+      filtered = filtered.filter(t => t.payment_method === selectedMethod);
+    }
+
+    // Filter by date range
+    if (dateRange.startDate && dateRange.endDate) {
+      const start = new Date(dateRange.startDate).getTime();
+      const end = new Date(dateRange.endDate).getTime();
+      filtered = filtered.filter(t => {
+        const transactionDate = new Date(t.created_at).getTime();
+        return transactionDate >= start && transactionDate <= end;
+      });
+    }
+
+    setFilteredTransactions(filtered);
+  };
+
   // Calculate pagination
-  const safeTransactions = transactions || [];
+  const safeTransactions = filteredTransactions || [];
   const totalItems = safeTransactions.length;
   const indexOfLastRow = currentPage * rowsPerPage;
   const indexOfFirstRow = indexOfLastRow - rowsPerPage;
@@ -88,7 +127,7 @@ export default function Transactions() {
 
   // Calculate summary statistics
   const calculateSummaryStats = () => {
-    const safeTransactions = transactions || [];
+    const safeTransactions = filteredTransactions || [];
     const totalTransactions = safeTransactions.length;
     const totalRevenue = safeTransactions.reduce(
       (sum, t) => sum + (t.total || 0),
@@ -207,6 +246,132 @@ export default function Transactions() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Filters */}
+            <div className="mb-4 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+              <div className="flex flex-wrap items-center justify-between">
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Header and Reset */}
+                  <div className="flex items-center mr-2 px-2 py-1.5 bg-gray-50 rounded-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-gray-500 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    <h3 className="text-sm font-medium text-gray-600">Filters</h3>
+                  </div>
+
+                  {/* Search Input */}
+                  <div className="relative flex-1 min-w-[200px] max-w-[250px]">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search invoice..."
+                      className="w-full h-9 pl-10 pr-4 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white hover:border-gray-400 transition-colors"
+                    />
+                  </div>
+
+                  {/* Payment Method Filter */}
+                  <div className="relative flex-1 min-w-[200px] max-w-[250px]">
+                    <select
+                      value={selectedMethod}
+                      onChange={(e) => setSelectedMethod(e.target.value)}
+                      className="appearance-none w-full h-9 px-3 pr-8 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white cursor-pointer hover:border-gray-400 transition-colors"
+                    >
+                      <option value="all">All Payment Methods</option>
+                      <option value="cash">Cash</option>
+                      <option value="card">Card</option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Date Range Filter */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={dateRange.startDate}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                      className="h-9 w-[130px] px-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400 transition-colors"
+                    />
+                    <span className="text-gray-400">—</span>
+                    <input
+                      type="date"
+                      value={dateRange.endDate}
+                      onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                      className="h-9 w-[130px] px-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500 hover:border-gray-400 transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Reset Button */}
+                <button
+                  onClick={() => {
+                    setSelectedMethod('all');
+                    setDateRange({ startDate: '', endDate: '' });
+                    setSearchQuery('');
+                  }}
+                  className="h-9 px-4 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors flex items-center gap-1"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Reset
+                </button>
+              </div>
+
+              {/* Active Filters */}
+              {(selectedMethod !== 'all' || (dateRange.startDate && dateRange.endDate) || searchQuery) && (
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {searchQuery && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                      Search: {searchQuery}
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="ml-1.5 text-blue-400 hover:text-blue-600 transition-colors"
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+                  {selectedMethod !== 'all' && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                      {selectedMethod.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                      <button
+                        onClick={() => setSelectedMethod('all')}
+                        className="ml-1.5 text-blue-400 hover:text-blue-600 transition-colors"
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+                  {dateRange.startDate && dateRange.endDate && (
+                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                      {new Date(dateRange.startDate).toLocaleDateString()} - {new Date(dateRange.endDate).toLocaleDateString()}
+                      <button
+                        onClick={() => setDateRange({ startDate: '', endDate: '' })}
+                        className="ml-1.5 text-blue-400 hover:text-blue-600 transition-colors"
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Error Message */}
