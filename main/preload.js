@@ -450,4 +450,17 @@ contextBridge.exposeInMainWorld("electron", {
             };
         }
     },
+    
+    //reports
+    getSalesReport: async () => {
+        try {
+            return await ipcRenderer.invoke("get-sales-report");
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
 });

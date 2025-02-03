@@ -1180,6 +1180,26 @@ const billTemplateHandlers = {
     },
 };
 
+//report
+const reportHandlers = {
+    getSalesReport: async () => {
+        try {
+            // Get all invoiced items with product details
+            const report = invoicedItemQueries.getAll.all();
+            return {
+                success: true,
+                report: report
+            };
+        } catch (error) {
+            console.error("Error in getSalesReport:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    }
+};
+
 export {
     categoryHandlers,
     productHandlers,
@@ -1189,4 +1209,5 @@ export {
     userHandlers,
     roleHandlers,
     billTemplateHandlers,
+    reportHandlers,
 };

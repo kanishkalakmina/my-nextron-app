@@ -34,6 +34,13 @@ interface SalesData {
     items_sold: number;
     total_sales: number;
   }>;
+  salesReport: Array<{
+    product_name: string;
+    order_id: string;
+    quantity: number;
+    price: number;
+    created_at: string;
+  }>;
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -58,20 +65,20 @@ const ReportsPage = () => {
   const fetchSalesData = async () => {
     try {
       setIsLoading(true);
-      const result = await window.electron.getSalesData({
-        startDate: dateRange.start,
-        endDate: dateRange.end,
-        reportType
-      });
-
+      const result = await window.electron.getSalesReport();
       if (result.success) {
-        setSalesData(result.data);
+        setSalesData({
+          dailySales: [],
+          productSales: [],
+          hourlySales: [],
+          categorySales: [],
+          salesReport: result.report || []
+        });
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
       console.error('Error fetching sales data:', error);
-      // You might want to show an error toast here
     } finally {
       setIsLoading(false);
     }
@@ -215,20 +222,24 @@ const ReportsPage = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Transactions</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Sales</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discounts</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tax</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {salesData.dailySales.map((row, idx) => (
+                    {salesData.salesReport.map((row, idx) => (
                       <tr key={idx}>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.date}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.transaction_count}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.total_sales.toFixed(2)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.total_discounts.toFixed(2)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.total_tax.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {new Date(row.created_at).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.order_id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.product_name}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.quantity}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.price.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(row.quantity * row.price).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -285,6 +296,39 @@ const ReportsPage = () => {
                 </table>
               </div>
             )}
+          </div>
+
+          {/* Sales Report Table */}
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h3 className="text-lg font-medium mb-4">Sales Report</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {salesData.salesReport.map((row, idx) => (
+                    <tr key={idx}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.product_name || 'N/A'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.order_id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{row.quantity}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${row.price.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${(row.quantity * row.price).toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(row.created_at).toLocaleDateString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       ) : (

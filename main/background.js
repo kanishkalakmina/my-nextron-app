@@ -18,6 +18,7 @@ import {
     userHandlers,
     roleHandlers,
     billTemplateHandlers,
+    reportHandlers,
 } from "./ipc/handlers";
 
 const isProd = process.env.NODE_ENV === "production";
@@ -116,7 +117,10 @@ const registerIpcHandlers = () => {
     ipcMain.handle("create-bill-template", billTemplateHandlers.createBillTemplate);
     ipcMain.handle("get-all-bill-templates", billTemplateHandlers.getAllBillTemplates);
     ipcMain.handle("update-bill-template", billTemplateHandlers.updateBillTemplate);
-};
+
+    //reports
+    ipcMain.handle("get-sales-report", reportHandlers.getSalesReport);
+}
 
 (async () => {
     await app.whenReady();
