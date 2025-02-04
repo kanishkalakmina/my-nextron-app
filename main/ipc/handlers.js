@@ -1182,19 +1182,20 @@ const billTemplateHandlers = {
 
 //report
 const reportHandlers = {
-    getSalesReport: async () => {
+    getSalesReport: async (event, { startDate, endDate }) => {
         try {
-            // Get all invoiced items with product details
-            const report = invoicedItemQueries.getAll.all();
+            // Use the prepared statement from paymentQueries
+            const report = paymentQueries.getSalesReportData.all(startDate, endDate);
+            
             return {
                 success: true,
-                report: report
+                report
             };
         } catch (error) {
-            console.error("Error in getSalesReport:", error);
+            console.error('Error in getSalesReport:', error);
             return {
                 success: false,
-                error: error.message,
+                error: error.message || 'Failed to get sales report'
             };
         }
     }

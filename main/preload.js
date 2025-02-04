@@ -452,14 +452,14 @@ contextBridge.exposeInMainWorld("electron", {
     },
     
     //reports
-    getSalesReport: async () => {
+    getSalesReport: async (dateRange) => {
         try {
-            return await ipcRenderer.invoke("get-sales-report");
+            return await ipcRenderer.invoke('get-sales-report', dateRange);
         } catch (error) {
-            console.error("IPC Error:", error);
+            console.error('IPC Error:', error);
             return {
                 success: false,
-                error: error.message,
+                error: error.message
             };
         }
     },

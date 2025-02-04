@@ -407,6 +407,20 @@ const paymentQueries = {
     WHERE order_id LIKE ? OR payment_method LIKE ? OR status LIKE ?
     ORDER BY created_at DESC
   `),
+    getSalesReportData: db.prepare(`
+        SELECT 
+            p.created_at,
+            p.order_id,
+            pr.name as product_name,
+            i.quantity,
+            i.price,
+            p.cashier
+        FROM payments p
+        JOIN invoiced_item i ON p.id = i.payment_id
+        JOIN products pr ON i.product_id = pr.id
+        WHERE DATE(p.created_at) BETWEEN ? AND ?
+        ORDER BY p.created_at DESC
+    `),
 };
 
 // Invoiced Item CRUD

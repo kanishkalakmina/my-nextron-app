@@ -44,7 +44,6 @@ const DashboardPage = () => {
     { id: "all", name: "All" },
   ]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [discountValue, setDiscountValue] = useState("0");
   const [activeCategory, setActiveCategory] = useState("all");
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [holdReference, setHoldReference] = useState("");
@@ -52,7 +51,7 @@ const DashboardPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Fetch categories and products when component mounts
   useEffect(() => {
@@ -169,7 +168,6 @@ const DashboardPage = () => {
   const handlePaymentComplete = async () => {
     // Clear the order after successful payment
     setOrderItems([]);
-    setDiscountValue("0");
     toast.success("Payment completed successfully!");
   };
 
@@ -265,23 +263,12 @@ const DashboardPage = () => {
 
     // Clear cart items and reset state
     setOrderItems([]);
-    setDiscountValue("0");
     setRecalledOrderId(null);
     setHoldReference("");
   };
 
-  // Calculate totals
-  const subtotal = orderItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
-  // Calculate discount
-  const discountAmount = (subtotal * (parseFloat(discountValue) || 0)) / 100;
-
-  const afterDiscount = subtotal - discountAmount;
-  const tax = afterDiscount * 0.18; // 18% tax
-  const total = afterDiscount + tax;
+  // Calculate total without discount and tax
+  const subtotal = orderItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
 
   const getImageUrl = (imagePath: string) => {
     if (!imagePath) return "";
@@ -465,44 +452,15 @@ const DashboardPage = () => {
                 <span>Subtotal</span>
                 <span>Rs. {subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span>Discount:</span>
-                <div className="flex items-center w-32">
-                  <input
-                    type="number"
-                    className="w-full text-right border rounded py-1 px-2"
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(e.target.value)}
-                    min="0"
-                    max="100"
-                  />
-                </div>
-              </div>
-              {parseFloat(discountValue) > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount Amount:</span>
-                  <span>
-                    -Rs.{" "}
-                    {(
-                      (subtotal * (parseFloat(discountValue) || 0)) /
-                      100
-                    ).toFixed(2)}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span>Tax (18%)</span>
-                <span>Rs. {tax.toFixed(2)}</span>
-              </div>
               <div className="flex justify-between font-bold text-lg pt-2 border-t">
                 <span>Total:</span>
-                <span>Rs. {total.toFixed(2)}</span>
+                <span>Rs. {subtotal.toFixed(2)}</span>
               </div>
 
               {/* Action Buttons */}
               <div className="grid grid-cols-3 gap-2 mt-4">
                 <button
-                  onClick={() => setIsPaymentModalOpen(true)}
+                  onClick={() => setShowPaymentModal(true)}
                   className="flex items-center justify-center gap-2 bg-[#4CAF50] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -638,14 +596,10 @@ const DashboardPage = () => {
       )}
 
       <PaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        total={total}
-        onPaymentComplete={handlePaymentComplete}
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
         orderItems={orderItems}
-        subtotal={subtotal}
-        discount={discountAmount}
-        tax={tax}
+        onPaymentComplete={handlePaymentComplete}
       />
     </Layout>
   );
