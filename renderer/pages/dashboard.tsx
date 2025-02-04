@@ -383,7 +383,7 @@ const DashboardPage = () => {
                         {product.name}
                       </h3>
                       <p className="text-blue-600 font-bold text-base">
-                        Rs. {Math.round(product.price)}
+                        Rs. {product.price.toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -414,7 +414,7 @@ const DashboardPage = () => {
               >
                 <div className="flex-1">
                   <h3 className="font-medium">{item.name}</h3>
-                  <p className="text-blue-500">Rs. {Math.round(item.price)}</p>
+                  <p className="text-blue-500">Rs. {item.price.toFixed(2)}</p>
                 </div>
                 <div className="flex items-center space-x-2">
                   <button
@@ -463,7 +463,7 @@ const DashboardPage = () => {
               </div>
               <div className="flex justify-between">
                 <span>Subtotal</span>
-                <span>Rs. {Math.round(subtotal)}</span>
+                <span>Rs. {subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span>Discount:</span>
@@ -483,19 +483,20 @@ const DashboardPage = () => {
                   <span>Discount Amount:</span>
                   <span>
                     -Rs.{" "}
-                    {Math.round(
-                      (subtotal * (parseFloat(discountValue) || 0)) / 100
-                    )}
+                    {(
+                      (subtotal * (parseFloat(discountValue) || 0)) /
+                      100
+                    ).toFixed(2)}
                   </span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span>Tax (18%)</span>
-                <span>Rs. {Math.round(tax)}</span>
+                <span>Rs. {tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold text-lg pt-2 border-t">
                 <span>Total:</span>
-                <span>Rs. {Math.round(total)}</span>
+                <span>Rs. {total.toFixed(2)}</span>
               </div>
 
               {/* Action Buttons */}

@@ -204,9 +204,7 @@ const productHandlers = {
             description,
             price,
             category_id,
-            image_path,
-            stock,
-            stock_disabled
+            image_path
         }
     ) => {
         try {
@@ -225,12 +223,11 @@ const productHandlers = {
                     error: "Price must be a positive number",
                 };
             }
-
-            // Validate stock is a non-negative number if not disabled
-            if (!stock_disabled && (stock < 0 || !Number.isInteger(stock))) {
+            // Validate price is a positive number
+            if (price < 0) {
                 return {
                     success: false,
-                    error: "Stock must be a non-negative integer",
+                    error: "Price must be a positive number",
                 };
             }
 
@@ -241,9 +238,7 @@ const productHandlers = {
                 description,
                 price,
                 category_id,
-                image_path,
-                stock_disabled ? 0 : stock,
-                stock_disabled ? 1 : 0  // Convert boolean to integer for SQLite
+                image_path
             );
             return {
                 success: true,
@@ -300,9 +295,7 @@ const productHandlers = {
                 description,
                 price,
                 category_id,
-                image_path,
-                stock,
-                stock_disabled
+                image_path
             } = data;
 
             // Validate required fields
@@ -318,14 +311,6 @@ const productHandlers = {
                 return {
                     success: false,
                     error: "Price must be a positive number",
-                };
-            }
-
-            // Validate stock is a non-negative number if not disabled
-            if (!stock_disabled && (stock < 0 || !Number.isInteger(stock))) {
-                return {
-                    success: false,
-                    error: "Stock must be a non-negative integer",
                 };
             }
 
@@ -361,8 +346,6 @@ const productHandlers = {
                 price,
                 category_id,
                 image_path,
-                stock,
-                stock_disabled
             });
 
             productQueries.update.run(
@@ -371,8 +354,6 @@ const productHandlers = {
                 price,
                 category_id,
                 image_path,
-                stock_disabled ? 0 : stock,
-                stock_disabled ? 1 : 0,  // Convert boolean to integer for SQLite
                 id
             );
 

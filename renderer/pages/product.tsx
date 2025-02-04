@@ -20,8 +20,6 @@ interface Product {
   category_id: string;
   category_name: string;
   image_path?: string;
-  stock: number;
-  stock_disabled: boolean;
 }
 
 interface Category {
@@ -39,8 +37,6 @@ interface ProductForm {
   category_id: string;
   image: File | null;
   existingImagePath: string | null;
-  stock: number;
-  stock_disabled: boolean;
 }
 
 const ProductPage = () => {
@@ -58,8 +54,6 @@ const ProductPage = () => {
     category_id: "",
     image: null,
     existingImagePath: null,
-    stock: 0,
-    stock_disabled: false,
   });
 
   useEffect(() => {
@@ -106,8 +100,6 @@ const ProductPage = () => {
         category_id: product.category_id || "",
         image: null,
         existingImagePath: product.image_path,
-        stock: product.stock || 0,
-        stock_disabled: product.stock_disabled || false,
       });
     } else {
       setEditingProduct(null);
@@ -118,8 +110,6 @@ const ProductPage = () => {
         category_id: "",
         image: null,
         existingImagePath: null,
-        stock: 0,
-        stock_disabled: false,
       });
     }
     setIsModalOpen(true);
@@ -135,8 +125,6 @@ const ProductPage = () => {
       category_id: "",
       image: null,
       existingImagePath: null,
-      stock: 0,
-      stock_disabled: false,
     });
   };
 
@@ -179,8 +167,6 @@ const ProductPage = () => {
         price: productForm.price,
         category_id: productForm.category_id,
         image_path: imagePath,
-        stock: productForm.stock_disabled ? 0 : productForm.stock,
-        stock_disabled: productForm.stock_disabled,
       };
 
       console.log("Submitting product data:", {
@@ -389,12 +375,6 @@ const ProductPage = () => {
                       </th>
                       <th
                         scope="col"
-                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
-                      >
-                        Stock
-                      </th>
-                      <th
-                        scope="col"
                         className="relative py-3.5 pl-3 pr-4 sm:pr-6"
                       >
                         <span className="sr-only">Actions</span>
@@ -438,13 +418,10 @@ const ProductPage = () => {
                           {product.description || "-"}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          Rs. {Math.round(product.price)}
+                          ${product.price.toFixed(2)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {product.category_name || "-"}
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          {product.stock}
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                           <button
@@ -467,7 +444,7 @@ const ProductPage = () => {
                     {products.length === 0 && (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={6}
                           className="whitespace-nowrap py-4 pl-4 pr-3 text-sm text-gray-500 text-center"
                         >
                           No products found
@@ -590,25 +567,27 @@ const ProductPage = () => {
                         htmlFor="price"
                         className="block text-sm font-medium leading-6 text-gray-900"
                       >
-                        Price (Rs)
+                        Price
                       </label>
-                      <div className="mt-2">
+                      <div className="mt-2 relative">
+                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                          <span className="text-gray-500 sm:text-sm">$</span>
+                        </div>
                         <input
                           type="number"
-                          name="price"
                           id="price"
                           required
+                          step="0.01"
                           min="0"
-                          step="1"
-                          value={Math.round(productForm.price)}
+                          value={productForm.price}
                           onChange={(e) =>
                             setProductForm({
                               ...productForm,
-                              price: parseInt(e.target.value) || 0,
+                              price: parseFloat(e.target.value),
                             })
                           }
-                          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6"
-                          placeholder="0"
+                          className="block w-full rounded-lg border-0 py-2 pl-7 pr-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6"
+                          placeholder="0.00"
                         />
                       </div>
                     </div>
@@ -641,61 +620,6 @@ const ProductPage = () => {
                             </option>
                           ))}
                         </select>
-                      </div>
-                    </div>
-
-                    {/* Stock field */}
-                    <div>
-                      <label
-                        htmlFor="stock"
-                        className="block text-sm font-medium leading-6 text-gray-900"
-                      >
-                        Stock
-                      </label>
-                      <div className="mt-2">
-                        <input
-                          type="number"
-                          id="stock"
-                          required
-                          min="0"
-                          disabled={productForm.stock_disabled}
-                          value={productForm.stock_disabled ? 0 : productForm.stock}
-                          onChange={(e) =>
-                            setProductForm({
-                              ...productForm,
-                              stock: parseInt(e.target.value) || 0,
-                            })
-                          }
-                          className={`block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6 ${
-                            productForm.stock_disabled ? 'bg-gray-100' : ''
-                          }`}
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Stock Disabled field */}
-                    <div>
-                      <label
-                        htmlFor="stock_disabled"
-                        className="block text-sm font-medium leading-6 text-gray-900"
-                      >
-                        N/A
-                      </label>
-                      <div className="mt-2 flex items-center">
-                        <input
-                          type="checkbox"
-                          id="stock_disabled"
-                          checked={productForm.stock_disabled}
-                          onChange={(e) =>
-                            setProductForm({
-                              ...productForm,
-                              stock_disabled: e.target.checked,
-                              stock: e.target.checked ? 0 : productForm.stock,
-                            })
-                          }
-                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                        />
                       </div>
                     </div>
 
