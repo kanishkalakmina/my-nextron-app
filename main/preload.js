@@ -290,6 +290,13 @@ contextBridge.exposeInMainWorld("electron", {
     // Payments
     savePayment: async (paymentDetails) => {
         try {
+            // First validate stock
+            const stockValidation = await ipcRenderer.invoke("validate-payment-stock", paymentDetails.orderItems);
+            if (!stockValidation.success) {
+                return stockValidation; // Return the error if stock validation fails
+            }
+
+            // If stock validation passes, proceed with payment
             return await ipcRenderer.invoke("save-payment", paymentDetails);
         } catch (error) {
             console.error("IPC Error:", error);

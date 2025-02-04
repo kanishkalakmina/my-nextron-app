@@ -69,6 +69,7 @@ try {
       price REAL NOT NULL,
       category_id TEXT,
       image_path TEXT,
+      isNA INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (category_id) REFERENCES categories(id)
@@ -170,6 +171,15 @@ try {
       bill_width INTEGER DEFAULT 600,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Create Stock table if not exists
+    CREATE TABLE IF NOT EXISTS Stock (
+        id TEXT PRIMARY KEY,
+        product_id TEXT NOT NULL,
+        stock_quantity INTEGER NOT NULL,
+        updated_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products(id)
     );
   `);
 
@@ -283,8 +293,8 @@ const categoryQueries = {
 // Products CRUD
 const productQueries = {
     create: db.prepare(`
-    INSERT INTO products (id, name, description, price, category_id, image_path) 
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, description, price, category_id, image_path, isNA)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `),
     getAll: db.prepare(`
     SELECT 
@@ -311,6 +321,7 @@ const productQueries = {
         price = ?, 
         category_id = ?,
         image_path = ?,
+        isNA = ?,
         updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `),
@@ -524,6 +535,26 @@ const billTemplateQueries = {
     delete: db.prepare("DELETE FROM bill_templates WHERE id = ?"),
 };
 
+// Stock CRUD
+const stockQueries = {
+    create: db.prepare(`
+        INSERT INTO Stock (id, product_id, stock_quantity, updated_date)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    `),
+    update: db.prepare(`
+        UPDATE Stock 
+        SET stock_quantity = ?, 
+            updated_date = CURRENT_TIMESTAMP
+        WHERE product_id = ?
+    `),
+    getByProductId: db.prepare(`
+        SELECT * FROM Stock WHERE product_id = ?
+    `),
+    delete: db.prepare(`
+        DELETE FROM Stock WHERE product_id = ?
+    `),
+};
+
 export {
     categoryQueries,
     productQueries,
@@ -534,4 +565,5 @@ export {
     paymentQueries,
     invoicedItemQueries,
     billTemplateQueries,
+    stockQueries,
 };

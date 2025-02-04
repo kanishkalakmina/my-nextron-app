@@ -88,11 +88,9 @@ const registerIpcHandlers = () => {
     ipcMain.handle("save-payment", paymentHandlers.savePayment);
     ipcMain.handle("get-all-payments", paymentHandlers.getAllPayments);
     ipcMain.handle("get-payment-by-id", paymentHandlers.getPaymentById);
-    ipcMain.handle(
-        "get-payment-by-order-id",
-        paymentHandlers.getPaymentByOrderId
-    );
+    ipcMain.handle("get-payment-by-order-id", paymentHandlers.getPaymentByOrderId);
     ipcMain.handle("search-payments", paymentHandlers.searchPayments);
+    ipcMain.handle("validate-payment-stock", paymentHandlers.validatePaymentStock);
 
     // User management
     ipcMain.handle("getAllUsers", userHandlers.getAllUsers);

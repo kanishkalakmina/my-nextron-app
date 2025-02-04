@@ -8,6 +8,7 @@ import {
     paymentQueries,
     invoicedItemQueries,
     billTemplateQueries,
+    stockQueries,
 } from "../db/index.js";
 import {
     app
@@ -198,74 +199,57 @@ const productHandlers = {
         }
     },
 
-    createProduct: async (
-        event, {
-            name,
-            description,
-            price,
-            category_id,
-            image_path
-        }
-    ) => {
+    createProduct: async (event, data) => {
         try {
-            // Validate required fields
-            if (!name || !price || !category_id) {
-                return {
-                    success: false,
-                    error: "Missing required fields",
-                };
-            }
-
-            // Validate price is a positive number
-            if (price < 0) {
-                return {
-                    success: false,
-                    error: "Price must be a positive number",
-                };
-            }
-            // Validate price is a positive number
-            if (price < 0) {
-                return {
-                    success: false,
-                    error: "Price must be a positive number",
-                };
-            }
-
             const id = generateUUID();
+            const stockId = generateUUID();
+
+            // Convert boolean to integer for SQLite
+            const isNA = data.isNA ? 1 : 0;
+
+            // Create product with isNA field
             productQueries.create.run(
                 id,
-                name,
-                description,
-                price,
-                category_id,
-                image_path
+                data.name,
+                data.description,
+                data.price,
+                data.category_id,
+                data.image_path,
+                isNA
             );
-            return {
-                success: true,
-                id,
-            };
+
+            // If not N/A, create stock record
+            if (!data.isNA) {
+                stockQueries.create.run(
+                    stockId,
+                    id,
+                    data.stock || 0
+                );
+            }
+
+            return { success: true, id };
         } catch (error) {
             console.error("Error creating product:", error);
-            return {
-                success: false,
-                error: error.message,
-            };
+            return { success: false, error: error.message };
         }
     },
 
     getAllProducts: async () => {
         try {
-            const products = productQueries.getAll.all();
-            return {
-                success: true,
-                products,
-            };
+            const products = productQueries.getAll.all().map(product => {
+                // Get stock information for each product
+                const stockInfo = stockQueries.getByProductId.get(product.id);
+                return {
+                    ...product,
+                    // Convert integer back to boolean
+                    isNA: product.isNA === 1,
+                    stock: product.isNA === 1 ? null : (stockInfo?.stock_quantity || 0)
+                };
+            });
+            return { success: true, products };
         } catch (error) {
             console.error("Error getting products:", error);
-            return {
-                success: false,
-                error: error.message,
-            };
+            return { success: false, error: error.message };
         }
     },
 
@@ -289,84 +273,44 @@ const productHandlers = {
 
     updateProduct: async (event, data) => {
         try {
-            const {
-                id,
-                name,
-                description,
-                price,
-                category_id,
-                image_path
-            } = data;
+            // Convert boolean to integer for SQLite
+            const isNA = data.isNA ? 1 : 0;
 
-            // Validate required fields
-            if (!id || !name || !price || !category_id) {
-                return {
-                    success: false,
-                    error: "Missing required fields",
-                };
-            }
+            // Update product with isNA field
+            productQueries.update.run(
+                data.name,
+                data.description,
+                data.price,
+                data.category_id,
+                data.image_path,
+                isNA,
+                data.id
+            );
 
-            // Validate price is a positive number
-            if (price < 0) {
-                return {
-                    success: false,
-                    error: "Price must be a positive number",
-                };
-            }
-
-            // Get the current product to check its image
-            const currentProduct = productQueries.getById.get(id);
-            if (
-                currentProduct &&
-                currentProduct.image_path &&
-                image_path !== currentProduct.image_path
-            ) {
-                // If there's a new image and an old image exists, delete the old one
-                try {
-                    const oldImagePath = path.join(
-                        process.cwd(),
-                        "renderer",
-                        "public",
-                        currentProduct.image_path
+            // Handle stock updates
+            if (data.isNA) {
+                // If marked as N/A, remove any existing stock record
+                stockQueries.delete.run(data.id);
+            } else {
+                const stockRecord = stockQueries.getByProductId.get(data.id);
+                if (stockRecord) {
+                    // Update existing stock record
+                    stockQueries.update.run(data.stock || 0, data.id);
+                } else {
+                    // Create new stock record
+                    const stockId = generateUUID();
+                    stockQueries.create.run(
+                        stockId,
+                        data.id,
+                        data.stock || 0
                     );
-                    if (fs.existsSync(oldImagePath)) {
-                        fs.unlinkSync(oldImagePath);
-                        console.log("Deleted old image:", oldImagePath);
-                    }
-                } catch (error) {
-                    console.error("Error deleting old image:", error);
-                    // Continue with the update even if image deletion fails
                 }
             }
 
-            console.log("Updating product:", {
-                id,
-                name,
-                description,
-                price,
-                category_id,
-                image_path,
-            });
-
-            productQueries.update.run(
-                name,
-                description,
-                price,
-                category_id,
-                image_path,
-                id
-            );
-
-            console.log("Product updated successfully");
-            return {
-                success: true,
-            };
+            return { success: true };
         } catch (error) {
             console.error("Error updating product:", error);
-            return {
-                success: false,
-                error: error.message,
-            };
+            return { success: false, error: error.message };
         }
     },
 
@@ -871,11 +815,12 @@ const paymentHandlers = {
                 cashier,
             );
 
-
-            // Save each purchased item
+            // Save each purchased item and update stock
             if (orderItems && Array.isArray(orderItems)) {
                 for (const item of orderItems) {
                     const invoicedItemId = generateUUID();
+                    
+                    // Save the invoiced item
                     invoicedItemQueries.create.run(
                         invoicedItemId,
                         id, // payment_id
@@ -883,20 +828,64 @@ const paymentHandlers = {
                         item.quantity,
                         item.price
                     );
+
+                    // Get product details to check if it's N/A
+                    const product = productQueries.getById.get(item.id);
+                    if (product && !product.isNA) {
+                        // Get current stock
+                        const stockInfo = stockQueries.getByProductId.get(item.id);
+                        if (stockInfo) {
+                            // Update stock quantity
+                            const newQuantity = Math.max(0, stockInfo.stock_quantity - item.quantity);
+                            stockQueries.update.run(newQuantity, item.id);
+                        }
+                    }
                 }
             }
 
-            return {
-                success: true,
-            };
+            return { success: true };
         } catch (error) {
             console.error("Error saving payment:", error);
-            return {
-                success: false,
-                error: error.message,
-            };
+            return { success: false, error: error.message };
         }
     },
+
+    // Add a function to validate stock before payment
+    validatePaymentStock: async (event, orderItems) => {
+        try {
+            for (const item of orderItems) {
+                // Get product details
+                const product = productQueries.getById.get(item.id);
+                if (!product) {
+                    return {
+                        success: false,
+                        error: `Product not found: ${item.id}`
+                    };
+                }
+
+                // Skip stock validation for N/A products
+                if (product.isNA) {
+                    continue;
+                }
+
+                // Check stock availability
+                const stockInfo = stockQueries.getByProductId.get(item.id);
+                if (!stockInfo || stockInfo.stock_quantity < item.quantity) {
+                    const available = stockInfo ? stockInfo.stock_quantity : 0;
+                    return {
+                        success: false,
+                        error: `Insufficient stock for ${product.name}. Available: ${available}, Requested: ${item.quantity}`
+                    };
+                }
+            }
+
+            return { success: true };
+        } catch (error) {
+            console.error("Error validating stock:", error);
+            return { success: false, error: error.message };
+        }
+    },
+    
     getAllPayments: () => {
         try {
             const payments = paymentQueries.getAll.all();

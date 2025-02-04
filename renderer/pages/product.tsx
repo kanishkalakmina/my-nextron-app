@@ -20,6 +20,8 @@ interface Product {
   category_id: string;
   category_name: string;
   image_path?: string;
+  stock?: number;
+  isNA: boolean;
 }
 
 interface Category {
@@ -37,6 +39,8 @@ interface ProductForm {
   category_id: string;
   image: File | null;
   existingImagePath: string | null;
+  stock: number;
+  isNA: boolean;
 }
 
 const ProductPage = () => {
@@ -54,6 +58,8 @@ const ProductPage = () => {
     category_id: "",
     image: null,
     existingImagePath: null,
+    stock: 0,
+    isNA: false,
   });
 
   useEffect(() => {
@@ -100,6 +106,8 @@ const ProductPage = () => {
         category_id: product.category_id || "",
         image: null,
         existingImagePath: product.image_path,
+        stock: product.stock || 0,
+        isNA: product.isNA || false,
       });
     } else {
       setEditingProduct(null);
@@ -110,6 +118,8 @@ const ProductPage = () => {
         category_id: "",
         image: null,
         existingImagePath: null,
+        stock: 0,
+        isNA: false,
       });
     }
     setIsModalOpen(true);
@@ -125,6 +135,8 @@ const ProductPage = () => {
       category_id: "",
       image: null,
       existingImagePath: null,
+      stock: 0,
+      isNA: false,
     });
   };
 
@@ -167,6 +179,8 @@ const ProductPage = () => {
         price: productForm.price,
         category_id: productForm.category_id,
         image_path: imagePath,
+        stock: productForm.stock,
+        isNA: productForm.isNA,
       };
 
       console.log("Submitting product data:", {
@@ -375,6 +389,12 @@ const ProductPage = () => {
                       </th>
                       <th
                         scope="col"
+                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                      >
+                        Stock
+                      </th>
+                      <th
+                        scope="col"
                         className="relative py-3.5 pl-3 pr-4 sm:pr-6"
                       >
                         <span className="sr-only">Actions</span>
@@ -422,6 +442,9 @@ const ProductPage = () => {
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {product.category_name || "-"}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {product.isNA ? "N/A" : product.stock}
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                           <button
@@ -621,6 +644,56 @@ const ProductPage = () => {
                           ))}
                         </select>
                       </div>
+                    </div>
+
+                    {/* Stock field */}
+                    <div>
+                      <label
+                        htmlFor="stock"
+                        className="block text-sm font-medium leading-6 text-gray-900"
+                      >
+                        Stock
+                      </label>
+                      <div className="mt-2">
+                        <input
+                          type="number"
+                          id="stock"
+                          min="0"
+                          value={productForm.stock}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              stock: parseInt(e.target.value) || 0,
+                            })
+                          }
+                          disabled={productForm.isNA}
+                          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          placeholder="Enter stock quantity"
+                        />
+                      </div>
+                    </div>
+
+                    {/* N/A checkbox */}
+                    <div className="flex items-center mt-8">
+                      <input
+                        type="checkbox"
+                        id="isNA"
+                        checked={productForm.isNA}
+                        onChange={(e) =>
+                          setProductForm({
+                            ...productForm,
+                            isNA: e.target.checked,
+                            stock: e.target.checked ? 0 : productForm.stock,
+                          })
+                        }
+                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                      />
+                      <label
+                        htmlFor="isNA"
+                        className="ml-2 block text-sm font-medium leading-6 text-gray-900"
+                      >
+                        N/A
+                      </label>
                     </div>
 
                     {/* Image upload field */}
