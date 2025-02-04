@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import {
   XMarkIcon,
   CreditCardIcon,
@@ -40,11 +40,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("cash");
   const billRef = useRef<HTMLDivElement>(null);
   const hiddenBillRef = useRef<HTMLDivElement>(null);
-
-  // Reset amount when modal opens/closes
-  useEffect(() => {
-    setAmount("");
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -196,8 +191,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         throw new Error(result.error || "Failed to save payment");
       }
       printBill();
-      // Reset amount to empty string
-      setAmount("");
       onPaymentComplete();
       onClose();
     } catch (error) {
