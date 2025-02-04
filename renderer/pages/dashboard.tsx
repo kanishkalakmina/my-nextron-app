@@ -342,26 +342,26 @@ const DashboardPage = () => {
                 scrollbarColor: "#E5E7EB transparent",
               }}
             >
-              <div className="grid grid-cols-5 gap-4 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
                 {filteredProducts.map((product) => (
                   <div
                     key={product.id}
                     onClick={() => addToOrder(product)}
-                    className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 h-[200px]"
+                    className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 flex flex-col h-[200px]"
                   >
-                    <div className="w-full h-25">
+                    <div className="w-full h-[120px]">
                       {product.image_path ? (
                         <img
                           src={getImageUrl(product.image_path)}
                           alt={product.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-[120px] object-cover"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.src = "/images/default-product.png";
                           }}
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <div className="w-full h-[120px] bg-gray-100 flex items-center justify-center">
                           <svg
                             className="w-12 h-12 text-gray-300"
                             fill="none"
@@ -378,11 +378,11 @@ const DashboardPage = () => {
                         </div>
                       )}
                     </div>
-                    <div className="p-3">
-                      <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                    <div className="p-2 flex-1 flex flex-col space-y-0.5">
+                      <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">
                         {product.name}
                       </h3>
-                      <p className="text-blue-600 font-bold text-lg mt-1">
+                      <p className="text-blue-600 font-bold text-base">
                         Rs. {product.price.toFixed(2)}
                       </p>
                     </div>
