@@ -1180,6 +1180,27 @@ const billTemplateHandlers = {
     },
 };
 
+//report
+const reportHandlers = {
+    getSalesReport: async (event, { startDate, endDate }) => {
+        try {
+            // Use the prepared statement from paymentQueries
+            const report = paymentQueries.getSalesReportData.all(startDate, endDate);
+            
+            return {
+                success: true,
+                report
+            };
+        } catch (error) {
+            console.error('Error in getSalesReport:', error);
+            return {
+                success: false,
+                error: error.message || 'Failed to get sales report'
+            };
+        }
+    }
+};
+
 export {
     categoryHandlers,
     productHandlers,
@@ -1189,4 +1210,5 @@ export {
     userHandlers,
     roleHandlers,
     billTemplateHandlers,
+    reportHandlers,
 };

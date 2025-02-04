@@ -13,31 +13,31 @@ import { v4 as uuidv4 } from "uuid";
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  total: number;
-  onPaymentComplete: () => void;
   orderItems: Array<{
     id: string;
     name: string;
     price: number;
     quantity: number;
   }>;
-  subtotal: number;
-  discount: number;
-  tax: number;
+  onPaymentComplete: () => void;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
-  total,
-  onPaymentComplete,
   orderItems,
-  subtotal,
-  discount,
-  tax,
+  onPaymentComplete,
 }) => {
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("cash");
+  
+  // Hardcoded values instead of inputs
+  const discount = 0; // Set your default discount value
+  const tax = 0;     // Set your default tax value
+
+  const subtotal = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  const total = subtotal - discount + tax;
+
   const billRef = useRef<HTMLDivElement>(null);
   const hiddenBillRef = useRef<HTMLDivElement>(null);
 
@@ -167,7 +167,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     try {
       // Save payment details to database
       const paymentDetails = {
-
         id: uuidv4(),
         order_id: createTimestampId(),
         amount: total,
@@ -265,6 +264,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
           <div className="bg-gray-50 p-4 rounded-lg mb-4">
             <div className="flex justify-between mb-2">
+              <span>Subtotal:</span>
+              <span>Rs. {subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between mb-2">
+              <span>Discount:</span>
+              <span>Rs. {discount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between mb-2">
+              <span>Tax:</span>
+              <span>Rs. {tax.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-bold border-t border-gray-200 pt-2">
               <span>Total Amount:</span>
               <span>Rs. {total.toFixed(2)}</span>
             </div>

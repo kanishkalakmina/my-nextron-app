@@ -343,6 +343,21 @@ declare global {
       }>;
       error?: string;
     }>;
+
+    //reports
+    getSalesReport: () => Promise<{
+      success: boolean;
+      report?: Array<{
+        id: string;
+        item_id: string;
+        quantity: number;
+        price: number;
+        total: number;
+        created_at: string;
+        updated_at: string;
+      }>;
+      error?: string;
+    }>;
   }
 }
 
@@ -901,6 +916,18 @@ export function useIPC(options: UseIPCOptions = {}) {
       };
     }
   };
+  
+  const getSalesReport = async () => {
+    try {
+      return await window.electron.getSalesReport();
+    } catch (error) {
+      console.error("Error in getSalesReport:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to get sales report",
+      };
+    }
+  };
 
   return {
     loading,
@@ -945,5 +972,8 @@ export function useIPC(options: UseIPCOptions = {}) {
     getAllBillTemplates,
     updateBillTemplate,
     uploadImage,
+
+    //reports
+    getSalesReport,
   };
 }
