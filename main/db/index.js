@@ -69,6 +69,8 @@ try {
       price REAL NOT NULL,
       category_id TEXT,
       image_path TEXT,
+      stock INTEGER DEFAULT 0,
+      stock_disabled BOOLEAN DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (category_id) REFERENCES categories(id)
@@ -283,8 +285,8 @@ const categoryQueries = {
 // Products CRUD
 const productQueries = {
     create: db.prepare(`
-    INSERT INTO products (id, name, description, price, category_id, image_path) 
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, description, price, category_id, image_path, stock, stock_disabled) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `),
     getAll: db.prepare(`
     SELECT 
@@ -311,6 +313,8 @@ const productQueries = {
         price = ?, 
         category_id = ?,
         image_path = ?,
+        stock = ?,
+        stock_disabled = ?,
         updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `),
