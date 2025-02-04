@@ -221,7 +221,7 @@ const DashboardPage = () => {
       reference: holdReference,
       items: orderItems,
       total_items: orderItems.reduce((sum, item) => sum + item.quantity, 0),
-      total_amount: total,
+      total_amount: subtotal,
     };
 
     // If this is a recalled order, update it instead of creating new

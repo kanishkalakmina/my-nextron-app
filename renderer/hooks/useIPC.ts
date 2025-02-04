@@ -320,6 +320,12 @@ declare global {
         }>;
         error?: string;
       }>;
+
+      getSalesReport: (dateRange: { startDate: string; endDate: string }) => Promise<{
+        success: boolean;
+        report?: any[];
+        error?: string;
+      }>;
     };
 
     getAllBillTemplates: () => Promise<{
@@ -338,21 +344,6 @@ declare global {
         show_footer: number;
         logo_path: string;
         bill_width: number;
-        created_at: string;
-        updated_at: string;
-      }>;
-      error?: string;
-    }>;
-
-    //reports
-    getSalesReport: () => Promise<{
-      success: boolean;
-      report?: Array<{
-        id: string;
-        item_id: string;
-        quantity: number;
-        price: number;
-        total: number;
         created_at: string;
         updated_at: string;
       }>;
@@ -917,9 +908,9 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
   
-  const getSalesReport = async () => {
+  const getSalesReport = async (dateRange: { startDate: string; endDate: string }) => {
     try {
-      return await window.electron.getSalesReport();
+      return await window.electron.getSalesReport(dateRange);
     } catch (error) {
       console.error("Error in getSalesReport:", error);
       return {
