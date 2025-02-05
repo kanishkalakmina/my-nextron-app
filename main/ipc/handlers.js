@@ -879,7 +879,7 @@ const paymentHandlers = {
                     const available = stockInfo ? stockInfo.stock_quantity : 0;
                     return {
                         success: false,
-                        error: `Insufficient stock for ${product.name}. Available: ${available}, Requested: ${item.quantity}`
+                        error: `Cannot add ${item.quantity} ${product.name}(s) to cart. Only ${available} item(s) available in stock.`
                     };
                 }
             }

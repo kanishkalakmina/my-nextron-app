@@ -281,6 +281,24 @@ const DashboardPage = () => {
     return imagePath;
   };
 
+  // Add this function to handle the Pay button click
+  const handlePayClick = async () => {
+    try {
+      // Validate stock before opening payment modal
+      const stockValidation = await window.electron.validatePaymentStock(orderItems);
+      if (!stockValidation.success) {
+        toast.error(stockValidation.error);
+        return;
+      }
+      
+      // If validation passes, open payment modal
+      setShowPaymentModal(true);
+    } catch (error) {
+      console.error("Error validating stock:", error);
+      toast.error("Failed to validate stock. Please try again.");
+    }
+  };
+
   return (
     <Layout>
       <Head>
@@ -460,7 +478,7 @@ const DashboardPage = () => {
               {/* Action Buttons */}
               <div className="grid grid-cols-3 gap-2 mt-4">
                 <button
-                  onClick={() => setShowPaymentModal(true)}
+                  onClick={handlePayClick}
                   className="flex items-center justify-center gap-2 bg-[#4CAF50] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">

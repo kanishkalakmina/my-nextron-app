@@ -160,7 +160,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const handlePayment = async () => {
     const amountPaid = parseFloat(amount) || 0;
     if (amountPaid < total && paymentMethod === "cash") {
-      alert("Insufficient amount");
+      toast.error("Insufficient amount");
       return;
     }
     const { username: cashier } = JSON.parse(localStorage.getItem("userData") || "{}");
@@ -185,10 +185,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       };
 
       const result = await window.electron.savePayment(paymentDetails);
-      console.log(result);
       if (!result.success) {
-        throw new Error(result.error || "Failed to save payment");
+        toast.error(result.error || "Failed to process payment");
+        return;
       }
+      
       printBill();
       onPaymentComplete();
       onClose();

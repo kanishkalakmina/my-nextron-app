@@ -470,4 +470,17 @@ contextBridge.exposeInMainWorld("electron", {
             };
         }
     },
+
+    // Add this new function
+    validatePaymentStock: async (orderItems) => {
+        try {
+            return await ipcRenderer.invoke("validate-payment-stock", orderItems);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
 });
