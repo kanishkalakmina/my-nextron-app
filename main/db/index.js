@@ -64,7 +64,7 @@ try {
     -- Create products table if not exists
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE,
       description TEXT,
       price REAL NOT NULL,
       category_id TEXT,

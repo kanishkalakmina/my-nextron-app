@@ -142,7 +142,18 @@ const ProductPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
+      // Check if a product with the same name already exists
+      const existingProduct = products.find(
+        (p) => p.name.toLowerCase() === productForm.name.toLowerCase() && p.id !== editingProduct?.id
+      );
+
+      if (existingProduct) {
+        toast.error("A product with this name already exists!");
+        return;
+      }
+
       let imagePath = productForm.existingImagePath;
 
       if (productForm.image) {
@@ -438,7 +449,7 @@ const ProductPage = () => {
                           {product.description || "-"}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          ${product.price.toFixed(2)}
+                          Rs {product.price.toFixed(2)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {product.category_name || "-"}
@@ -590,17 +601,14 @@ const ProductPage = () => {
                         htmlFor="price"
                         className="block text-sm font-medium leading-6 text-gray-900"
                       >
-                        Price
+                        Price (Rs)
                       </label>
                       <div className="mt-2 relative">
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                          <span className="text-gray-500 sm:text-sm">$</span>
-                        </div>
                         <input
                           type="number"
                           id="price"
                           required
-                          step="0.01"
+                          step="1"
                           min="0"
                           value={productForm.price}
                           onChange={(e) =>
@@ -609,8 +617,8 @@ const ProductPage = () => {
                               price: parseFloat(e.target.value),
                             })
                           }
-                          className="block w-full rounded-lg border-0 py-2 pl-7 pr-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6"
-                          placeholder="0.00"
+                          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6"
+                          placeholder="0"
                         />
                       </div>
                     </div>
