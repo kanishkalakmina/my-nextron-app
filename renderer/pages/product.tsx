@@ -1004,6 +1004,8 @@ const ProductPage = () => {
                                   onClick={() => {
                                     setStockForm(prev => ({ ...prev, product_id: product.id }));
                                     setSearchQuery(product.name);
+                                    // Close the dropdown by clearing filtered products
+                                    setFilteredProducts([]);
                                   }}
                                 >
                                   {product.name}
@@ -1014,10 +1016,20 @@ const ProductPage = () => {
                         </div>
                       </div>
 
+                      {/* Current Stock Display */}
+                      {stockForm.product_id && (
+                        <div className="bg-gray-50 p-3 rounded-md">
+                          <div className="text-sm text-gray-700">
+                            <span className="font-medium">Current Available Stock: </span>
+                            {products.find(p => p.id === stockForm.product_id)?.stock || 0} items
+                          </div>
+                        </div>
+                      )}
+
                       {/* Stock Quantity */}
                       <div>
                         <label htmlFor="stock" className="block text-sm font-medium text-gray-700">
-                          Stock Quantity
+                          New Stock Quantity
                         </label>
                         <input
                           type="number"
