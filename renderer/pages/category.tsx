@@ -80,6 +80,17 @@ const CategoryPage = () => {
       return;
     }
 
+    // Check for existing category with the same name
+    const existingCategory = categories.find(
+      cat => cat.name.toLowerCase() === categoryForm.name.toLowerCase() &&
+      (!editingCategory || cat.id !== editingCategory.id)
+    );
+
+    if (existingCategory) {
+      toast.error(`Category "${categoryForm.name}" already exists`);
+      return;
+    }
+
     let success = false;
     if (editingCategory) {
       success = await updateCategory({
@@ -95,7 +106,7 @@ const CategoryPage = () => {
     if (success) {
       handleCloseModal();
       loadCategories();
-      toast.success("Category created successfully");
+      toast.success(editingCategory ? "Category updated successfully" : "Category created successfully");
     }
   };
 
