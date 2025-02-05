@@ -379,13 +379,13 @@ const ProductPage = () => {
 
     setLowStockNotifications(notifications);
     
-    // Show toast notifications for low stock items
-    notifications.forEach(notification => {
-      toast.error(
-        `Low stock alert: ${notification.productName} has only ${notification.stock} items remaining`,
-        { duration: 5000 }
-      );
-    });
+    // Remove the automatic toast notifications
+    // notifications.forEach(notification => {
+    //   toast.error(
+    //     `Low stock alert: ${notification.productName} has only ${notification.stock} items remaining`,
+    //     { duration: 5000 }
+    //   );
+    // });
   };
 
   const handleStockSubmit = async (e: React.FormEvent) => {
