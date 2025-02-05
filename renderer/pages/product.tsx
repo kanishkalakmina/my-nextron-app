@@ -20,7 +20,7 @@ interface Product {
   category_id: string;
   category_name: string;
   image_path?: string;
-  stock?: number;
+  stock: number;
   isNA: boolean;
 }
 
@@ -48,6 +48,13 @@ interface StockUpdateForm {
   stock: number;
 }
 
+interface LowStockNotification {
+  id: string;
+  productName: string;
+  stock: number;
+  timestamp: Date;
+}
+
 const ProductPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -73,6 +80,8 @@ const ProductPage = () => {
   });
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [lowStockNotifications, setLowStockNotifications] = useState<LowStockNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -85,6 +94,8 @@ const ProductPage = () => {
       if (result.success) {
         console.log("Products loaded:", result.products); // Debug log
         setProducts(result.products);
+        // Check for low stock whenever products are loaded
+        checkLowStock(result.products);
       } else {
         toast.error("Failed to load products");
       }
@@ -118,7 +129,7 @@ const ProductPage = () => {
         category_id: product.category_id || "",
         image: null,
         existingImagePath: product.image_path,
-        stock: product.stock || 0,
+        stock: product.stock,
         isNA: product.isNA || false,
       });
     } else {
@@ -356,6 +367,27 @@ const ProductPage = () => {
     setFilteredProducts(filtered);
   };
 
+  const checkLowStock = (productList: Product[]) => {
+    const notifications: LowStockNotification[] = productList
+      .filter(product => !product.isNA && product.stock <= 5)
+      .map(product => ({
+        id: product.id,
+        productName: product.name,
+        stock: product.stock,
+        timestamp: new Date()
+      }));
+
+    setLowStockNotifications(notifications);
+    
+    // Show toast notifications for low stock items
+    notifications.forEach(notification => {
+      toast.error(
+        `Low stock alert: ${notification.productName} has only ${notification.stock} items remaining`,
+        { duration: 5000 }
+      );
+    });
+  };
+
   const handleStockSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -365,13 +397,37 @@ const ProductPage = () => {
         return;
       }
 
+      // Validate stock quantity
+      if (stockForm.stock < 0) {
+        toast.error("Stock quantity cannot be negative");
+        return;
+      }
+
+      // Get current stock information
+      const currentStock = selectedProduct.stock || 0;
+      
+      // Show confirmation if reducing stock
+      if (stockForm.stock < currentStock) {
+        if (!window.confirm(`Are you sure you want to reduce stock from ${currentStock} to ${stockForm.stock}?`)) {
+          return;
+        }
+      }
+
       const result = await window.electron.updateProduct({
         ...selectedProduct,
         stock: stockForm.stock,
       });
 
       if (result.success) {
-        toast.success("Stock updated successfully");
+        toast.success(`Stock updated successfully. New stock: ${stockForm.stock}`);
+        
+        // Check if stock is low after update
+        if (stockForm.stock <= 5) {
+          toast.error(`Low stock alert: ${selectedProduct.name} has only ${stockForm.stock} items remaining`, {
+            duration: 5000,
+          });
+        }
+        
         loadProducts();
         handleCloseStockModal();
       } else {
@@ -383,8 +439,12 @@ const ProductPage = () => {
     }
   };
 
+  const handleDismissNotification = (id: string) => {
+    setLowStockNotifications(prev => prev.filter(notification => notification.id !== id));
+  };
+
   return (
-    <Layout>
+    <Layout notifications={lowStockNotifications} onDismissNotification={handleDismissNotification}>
       <Head>
         <title>Products - POS System</title>
       </Head>
@@ -393,7 +453,7 @@ const ProductPage = () => {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Products</h1>
-          <div className="flex space-x-4">
+          <div className="flex items-center space-x-4">
             <button
               type="button"
               onClick={() => handleOpenModal()}
