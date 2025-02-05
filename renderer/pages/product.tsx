@@ -332,14 +332,26 @@ const ProductPage = () => {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Products</h1>
-          <button
-            type="button"
-            onClick={() => handleOpenModal()}
-            className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Add Product
-          </button>
+          <div className="flex space-x-4">
+            <button
+              type="button"
+              onClick={() => handleOpenModal()}
+              className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            >
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Add Product
+            </button>
+            <button
+              type="button"
+              onClick={() => {/* TODO: Add update stock handler */}}
+              className="inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Update Stock
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -655,54 +667,58 @@ const ProductPage = () => {
                     </div>
 
                     {/* Stock field */}
-                    <div>
-                      <label
-                        htmlFor="stock"
-                        className="block text-sm font-medium leading-6 text-gray-900"
-                      >
-                        Stock
-                      </label>
-                      <div className="mt-2">
+                    {!editingProduct && (
+                      <div>
+                        <label
+                          htmlFor="stock"
+                          className="block text-sm font-medium leading-6 text-gray-900"
+                        >
+                          Stock
+                        </label>
+                        <div className="mt-2">
+                          <input
+                            type="number"
+                            id="stock"
+                            min="0"
+                            value={productForm.stock}
+                            onChange={(e) =>
+                              setProductForm({
+                                ...productForm,
+                                stock: parseInt(e.target.value) || 0,
+                              })
+                            }
+                            disabled={productForm.isNA}
+                            className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            placeholder="Enter stock quantity"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* N/A checkbox */}
+                    {!editingProduct && (
+                      <div className="flex items-center mt-8">
                         <input
-                          type="number"
-                          id="stock"
-                          min="0"
-                          value={productForm.stock}
+                          type="checkbox"
+                          id="isNA"
+                          checked={productForm.isNA}
                           onChange={(e) =>
                             setProductForm({
                               ...productForm,
-                              stock: parseInt(e.target.value) || 0,
+                              isNA: e.target.checked,
+                              stock: e.target.checked ? 0 : productForm.stock,
                             })
                           }
-                          disabled={productForm.isNA}
-                          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                          placeholder="Enter stock quantity"
+                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
                         />
+                        <label
+                          htmlFor="isNA"
+                          className="ml-2 block text-sm font-medium leading-6 text-gray-900"
+                        >
+                          N/A
+                        </label>
                       </div>
-                    </div>
-
-                    {/* N/A checkbox */}
-                    <div className="flex items-center mt-8">
-                      <input
-                        type="checkbox"
-                        id="isNA"
-                        checked={productForm.isNA}
-                        onChange={(e) =>
-                          setProductForm({
-                            ...productForm,
-                            isNA: e.target.checked,
-                            stock: e.target.checked ? 0 : productForm.stock,
-                          })
-                        }
-                        className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-                      />
-                      <label
-                        htmlFor="isNA"
-                        className="ml-2 block text-sm font-medium leading-6 text-gray-900"
-                      >
-                        N/A
-                      </label>
-                    </div>
+                    )}
 
                     {/* Image upload field */}
                     <div className="col-span-2">
