@@ -43,6 +43,11 @@ interface ProductForm {
   isNA: boolean;
 }
 
+interface StockUpdateForm {
+  product_id: string;
+  stock: number;
+}
+
 const ProductPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -61,6 +66,13 @@ const ProductPage = () => {
     stock: 0,
     isNA: false,
   });
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [stockForm, setStockForm] = useState<StockUpdateForm>({
+    product_id: "",
+    stock: 0,
+  });
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     loadProducts();
@@ -322,6 +334,55 @@ const ProductPage = () => {
     return imagePath;
   };
 
+  const handleOpenStockModal = () => {
+    setIsStockModalOpen(true);
+    setFilteredProducts(products.filter(p => !p.isNA));
+  };
+
+  const handleCloseStockModal = () => {
+    setIsStockModalOpen(false);
+    setStockForm({
+      product_id: "",
+      stock: 0,
+    });
+    setSearchQuery("");
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    const filtered = products.filter(product => 
+      !product.isNA && product.name.toLowerCase().includes(query.toLowerCase())
+    );
+    setFilteredProducts(filtered);
+  };
+
+  const handleStockSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const selectedProduct = products.find(p => p.id === stockForm.product_id);
+      if (!selectedProduct) {
+        toast.error("Please select a product");
+        return;
+      }
+
+      const result = await window.electron.updateProduct({
+        ...selectedProduct,
+        stock: stockForm.stock,
+      });
+
+      if (result.success) {
+        toast.success("Stock updated successfully");
+        loadProducts();
+        handleCloseStockModal();
+      } else {
+        toast.error(result.error || "Failed to update stock");
+      }
+    } catch (error) {
+      console.error("Error updating stock:", error);
+      toast.error("Failed to update stock");
+    }
+  };
+
   return (
     <Layout>
       <Head>
@@ -343,7 +404,7 @@ const ProductPage = () => {
             </button>
             <button
               type="button"
-              onClick={() => {/* TODO: Add update stock handler */}}
+              onClick={handleOpenStockModal}
               className="inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -826,6 +887,111 @@ const ProductPage = () => {
           </div>
         </div>
       )}
+
+      {/* Stock Update Modal */}
+      {isStockModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            {/* Modal backdrop */}
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 backdrop-blur-sm transition-opacity"
+              onClick={handleCloseStockModal}
+            ></div>
+
+            {/* Modal panel */}
+            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              <div className="absolute right-0 top-0 pr-4 pt-4">
+                <button
+                  type="button"
+                  className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
+                  onClick={handleCloseStockModal}
+                >
+                  <span className="sr-only">Close</span>
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                  <h3 className="text-base font-semibold leading-6 text-gray-900">
+                    Update Stock
+                  </h3>
+                  <form onSubmit={handleStockSubmit} className="mt-4">
+                    <div className="space-y-4">
+                      {/* Product Dropdown */}
+                      <div>
+                        <label htmlFor="product" className="block text-sm font-medium text-gray-700">
+                          Product
+                        </label>
+                        <div className="relative mt-1">
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => handleSearchChange(e.target.value)}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            placeholder="Search product..."
+                          />
+                          {searchQuery && filteredProducts.length > 0 && (
+                            <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                              {filteredProducts.map((product) => (
+                                <div
+                                  key={product.id}
+                                  className={`relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white ${
+                                    stockForm.product_id === product.id ? 'bg-indigo-600 text-white' : 'text-gray-900'
+                                  }`}
+                                  onClick={() => {
+                                    setStockForm(prev => ({ ...prev, product_id: product.id }));
+                                    setSearchQuery(product.name);
+                                  }}
+                                >
+                                  {product.name}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Stock Quantity */}
+                      <div>
+                        <label htmlFor="stock" className="block text-sm font-medium text-gray-700">
+                          Stock Quantity
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={stockForm.stock}
+                          onChange={(e) => setStockForm(prev => ({ ...prev, stock: parseInt(e.target.value) || 0 }))}
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse">
+                      <button
+                        type="submit"
+                        className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:ml-3 sm:w-auto"
+                      >
+                        Update Stock
+                      </button>
+                      <button
+                        type="button"
+                        className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+                        onClick={handleCloseStockModal}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
