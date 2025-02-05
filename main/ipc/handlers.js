@@ -338,7 +338,12 @@ const productHandlers = {
                 }
             }
 
+            // First delete the stock record if it exists
+            stockQueries.delete.run(id);
+
+            // Then delete the product
             productQueries.delete.run(id);
+            
             return {
                 success: true,
             };
