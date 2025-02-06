@@ -1,9 +1,12 @@
 appId: com.example.nextron
 productName: My Nextron App
-copyright: Copyright © 2018 Yoshihide Shiono
+copyright: Copyright © 2025 Lakmina Egodawattha
 directories:
   output: dist
   buildResources: resources
+win:
+  target:
+    - nsis
 files:
   - from: .
     filter:
