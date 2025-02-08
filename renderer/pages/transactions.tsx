@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Layout from "../components/Layout";
+import * as XLSX from 'xlsx';
+import { ArrowDownTrayIcon } from "@heroicons/react/24/outline";
+import toast from "react-hot-toast";
 
 interface Transaction {
   id: string;
@@ -153,6 +156,44 @@ export default function Transactions() {
     setCurrentPage(Math.min(Math.max(1, newPage), totalPages));
   };
 
+  const handleExportToExcel = () => {
+    try {
+      // Prepare data for export
+      const exportData = filteredTransactions.map(t => ({
+        'Invoice No': t.order_id,
+        'Date': formatDate(t.created_at),
+        'Payment Method': t.payment_method,
+        'Cashier': t.cashier,
+        'Subtotal': t.subtotal,
+        'Discount': t.discount,
+        'Tax': t.tax,
+        'Total': t.total,
+        'Amount Received': t.amount_received,
+        'Change': t.change_amount,
+        'Status': t.status
+      }));
+
+      // Create worksheet
+      const ws = XLSX.utils.json_to_sheet(exportData);
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+
+      // Generate filename with current date and time
+      const now = new Date();
+      const date = now.toISOString().split('T')[0];
+      const time = now.toTimeString().split(' ')[0].replace(/:/g, '-');
+      const fileName = `transactions_${date}_${time}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(wb, fileName);
+    } catch (error) {
+      console.error('Error exporting to Excel:', error);
+      toast.error('Failed to export transactions');
+    }
+  };
+
   return (
     <Layout>
       <div className="flex h-screen bg-gray-100">
@@ -160,6 +201,13 @@ export default function Transactions() {
           <div className="mb-8">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-semibold">Transactions</h1>
+              <button
+                onClick={handleExportToExcel}
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <ArrowDownTrayIcon className="h-5 w-5 mr-2" />
+                Export to Excel
+              </button>
             </div>
 
             {/* Summary Cards */}
