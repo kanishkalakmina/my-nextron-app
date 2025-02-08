@@ -12,7 +12,7 @@ import {
   LineElement,
 } from 'chart.js';
 import { Bar, Pie, Line } from 'react-chartjs-2';
-import { ArrowDownIcon, ArrowUpIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { ArrowDownIcon, ArrowUpIcon, FunnelIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 
 // Register ChartJS components
 ChartJS.register(
@@ -51,6 +51,7 @@ const InventoryReport = () => {
   const [sortBy, setSortBy] = useState('name'); // 'name', 'stock', 'category'
   const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -159,74 +160,245 @@ const InventoryReport = () => {
     ],
   };
 
+  // Add this new function to toggle card expansion
+  const toggleCard = (cardName: string) => {
+    if (expandedCard === cardName) {
+      setExpandedCard(null);
+    } else {
+      setExpandedCard(cardName);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Stock Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Total Products</p>
-              <p className="text-2xl font-semibold text-gray-900">{stockSummary.totalItems}</p>
-            </div>
-            <div className="p-3 bg-blue-50 rounded-full">
-              <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
+        {/* Total Products Card */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6">
+            <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleCard('total')}>
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600">Total Products</p>
+                  <p className="text-2xl font-semibold text-gray-900">{stockSummary.totalItems}</p>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-full">
+                  <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                  </svg>
+                </div>
+              </div>
+              {expandedCard === 'total' ? <ChevronUpIcon className="w-5 h-5 text-gray-500" /> : <ChevronDownIcon className="w-5 h-5 text-gray-500" />}
             </div>
           </div>
+          {expandedCard === 'total' && (
+            <div className="px-6 pb-6 border-t">
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Product</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Category</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {products.map(product => (
+                      <tr key={product.id}>
+                        <td className="px-4 py-2 text-sm text-gray-900">{product.name}</td>
+                        <td className="px-4 py-2 text-sm text-gray-500">{product.category_name}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">{product.stock}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Low Stock Items</p>
-              <p className="text-2xl font-semibold text-orange-500">{stockSummary.lowStockItems}</p>
-            </div>
-            <div className="p-3 bg-orange-50 rounded-full">
-              <ArrowDownIcon className="w-6 h-6 text-orange-500" />
+        {/* Low Stock Items Card */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6">
+            <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleCard('low')}>
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600">Low Stock Items</p>
+                  <p className="text-2xl font-semibold text-orange-500">{stockSummary.lowStockItems}</p>
+                </div>
+                <div className="p-3 bg-orange-50 rounded-full">
+                  <ArrowDownIcon className="w-6 h-6 text-orange-500" />
+                </div>
+              </div>
+              {expandedCard === 'low' ? <ChevronUpIcon className="w-5 h-5 text-gray-500" /> : <ChevronDownIcon className="w-5 h-5 text-gray-500" />}
             </div>
           </div>
+          {expandedCard === 'low' && (
+            <div className="px-6 pb-6 border-t">
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Product</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Stock</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {products.filter(p => p.stock > 0 && p.stock <= 5).map(product => (
+                      <tr key={product.id}>
+                        <td className="px-4 py-2 text-sm text-gray-900">{product.name}</td>
+                        <td className="px-4 py-2 text-sm text-gray-500">{product.stock}</td>
+                        <td className="px-4 py-2">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-orange-100 text-orange-800">
+                            Low Stock
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Out of Stock</p>
-              <p className="text-2xl font-semibold text-red-500">{stockSummary.outOfStockItems}</p>
-            </div>
-            <div className="p-3 bg-red-50 rounded-full">
-              <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-              </svg>
+        {/* Out of Stock Card */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6">
+            <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleCard('out')}>
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600">Out of Stock</p>
+                  <p className="text-2xl font-semibold text-red-500">{stockSummary.outOfStockItems}</p>
+                </div>
+                <div className="p-3 bg-red-50 rounded-full">
+                  <svg className="w-6 h-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                  </svg>
+                </div>
+              </div>
+              {expandedCard === 'out' ? <ChevronUpIcon className="w-5 h-5 text-gray-500" /> : <ChevronDownIcon className="w-5 h-5 text-gray-500" />}
             </div>
           </div>
+          {expandedCard === 'out' && (
+            <div className="px-6 pb-6 border-t">
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Product</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Category</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {products.filter(p => p.stock === 0).map(product => (
+                      <tr key={product.id}>
+                        <td className="px-4 py-2 text-sm text-gray-900">{product.name}</td>
+                        <td className="px-4 py-2 text-sm text-gray-500">{product.category_name}</td>
+                        <td className="px-4 py-2">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                            Out of Stock
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Healthy Stock</p>
-              <p className="text-2xl font-semibold text-green-500">{stockSummary.healthyStockItems}</p>
-            </div>
-            <div className="p-3 bg-green-50 rounded-full">
-              <ArrowUpIcon className="w-6 h-6 text-green-500" />
+        {/* Healthy Stock Card */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6">
+            <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleCard('healthy')}>
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600">Healthy Stock</p>
+                  <p className="text-2xl font-semibold text-green-500">{stockSummary.healthyStockItems}</p>
+                </div>
+                <div className="p-3 bg-green-50 rounded-full">
+                  <ArrowUpIcon className="w-6 h-6 text-green-500" />
+                </div>
+              </div>
+              {expandedCard === 'healthy' ? <ChevronUpIcon className="w-5 h-5 text-gray-500" /> : <ChevronDownIcon className="w-5 h-5 text-gray-500" />}
             </div>
           </div>
+          {expandedCard === 'healthy' && (
+            <div className="px-6 pb-6 border-t">
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Product</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Stock</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {products.filter(p => p.stock > 5).map(product => (
+                      <tr key={product.id}>
+                        <td className="px-4 py-2 text-sm text-gray-900">{product.name}</td>
+                        <td className="px-4 py-2 text-sm text-gray-500">{product.stock}</td>
+                        <td className="px-4 py-2">
+                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            Healthy Stock
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center">
-            <div className="flex-1">
-              <p className="text-sm font-medium text-gray-600">Total Stock Value</p>
-              <p className="text-2xl font-semibold text-purple-500">Rs. {stockSummary.totalValue.toFixed(2)}</p>
-            </div>
-            <div className="p-3 bg-purple-50 rounded-full">
-              <svg className="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        {/* Total Stock Value Card */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="p-6">
+            <div className="flex items-center justify-between cursor-pointer" onClick={() => toggleCard('value')}>
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-600">Total Stock Value</p>
+                  <p className="text-2xl font-semibold text-purple-500">Rs. {stockSummary.totalValue.toFixed(2)}</p>
+                </div>
+                <div className="p-3 bg-purple-50 rounded-full">
+                  <svg className="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+              </div>
+              {expandedCard === 'value' ? <ChevronUpIcon className="w-5 h-5 text-gray-500" /> : <ChevronDownIcon className="w-5 h-5 text-gray-500" />}
             </div>
           </div>
+          {expandedCard === 'value' && (
+            <div className="px-6 pb-6 border-t">
+              <div className="mt-4 overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Product</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Stock</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {products.map(product => (
+                      <tr key={product.id}>
+                        <td className="px-4 py-2 text-sm text-gray-900">{product.name}</td>
+                        <td className="px-4 py-2 text-sm text-gray-500">{product.stock}</td>
+                        <td className="px-4 py-2 text-sm text-gray-900">Rs. {(Number(product.stock) * Number(product.price)).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -384,7 +556,7 @@ const InventoryReport = () => {
                     {product.stock}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    Rs. {(product.stock * product.price).toFixed(2)}
+                    Rs. {(Number(product.stock) * Number(product.price)).toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
