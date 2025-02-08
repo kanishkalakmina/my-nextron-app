@@ -326,6 +326,11 @@ declare global {
         report?: any[];
         error?: string;
       }>;
+
+      validatePaymentStock: (orderItems: any[]) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
     };
 
     getAllBillTemplates: () => Promise<{
@@ -355,6 +360,8 @@ declare global {
 interface UseIPCOptions {
   onError?: (error: string) => void;
 }
+
+
 
 export function useIPC(options: UseIPCOptions = {}) {
   const [loading, setLoading] = useState(false);
@@ -920,6 +927,14 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const validatePaymentStock = async (orderItems: any[]) => {
+    try {
+      return await window.electron.validatePaymentStock(orderItems);
+    } catch (error) {
+      console.error("Error in validatePaymentStock:", error);
+    }
+  };
+
   return {
     loading,
     error,
@@ -966,5 +981,6 @@ export function useIPC(options: UseIPCOptions = {}) {
 
     //reports
     getSalesReport,
+    validatePaymentStock,
   };
 }
