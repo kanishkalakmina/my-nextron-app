@@ -424,13 +424,6 @@ const ProductPage = () => {
       if (result.success) {
         toast.success(`Stock updated successfully. New stock: ${stockForm.stock}`);
         
-        // Check if stock is low after update
-        if (stockForm.stock <= 5) {
-          toast.error(`Low stock alert: ${selectedProduct.name} has only ${stockForm.stock} items remaining`, {
-            duration: 5000,
-          });
-        }
-        
         loadProducts();
         handleCloseStockModal();
       } else {

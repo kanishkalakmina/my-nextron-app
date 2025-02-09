@@ -9,6 +9,7 @@ import Bill from "./Bill";
 import toast from "react-hot-toast";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
+import { useStock } from "../context/StockContext";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -40,6 +41,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   const billRef = useRef<HTMLDivElement>(null);
   const hiddenBillRef = useRef<HTMLDivElement>(null);
+
+  const { checkStockAfterPayment } = useStock();
 
   if (!isOpen) return null;
 
@@ -190,6 +193,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         return;
       }
       
+      // Check stock levels after successful payment
+      await checkStockAfterPayment(orderItems);
       printBill();
       onPaymentComplete();
       onClose();
