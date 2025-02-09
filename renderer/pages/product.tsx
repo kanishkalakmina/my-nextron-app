@@ -6,6 +6,8 @@ import {
   MagnifyingGlassIcon,
   PencilSquareIcon,
   TrashIcon,
+  XMarkIcon,
+  CheckIcon,
 } from "@heroicons/react/24/outline";
 import Layout from "../components/Layout";
 import { useIPC } from "../hooks/useIPC";
@@ -407,16 +409,17 @@ const ProductPage = () => {
       const currentStock = selectedProduct.stock || 0;
       
       // Show confirmation if reducing stock
-      if (stockForm.stock < currentStock) {
-        if (!window.confirm(`Are you sure you want to reduce stock from ${currentStock} to ${stockForm.stock}?`)) {
-          return;
-        }
+      if (stockForm.stock === 0) {
+        toast.error("Stock quantity cannot be 0");
+        return;
       }
 
+      const newStock = currentStock + stockForm.stock;
       const result = await window.electron.updateProduct({
         ...selectedProduct,
-        stock: stockForm.stock,
+        stock: newStock,
       });
+
 
       if (result.success) {
         toast.success(`Stock updated successfully. New stock: ${stockForm.stock}`);
@@ -960,6 +963,7 @@ const ProductPage = () => {
 
             {/* Modal panel */}
             <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              {/* Close button */}
               <div className="absolute right-0 top-0 pr-4 pt-4">
                 <button
                   type="button"
@@ -967,93 +971,98 @@ const ProductPage = () => {
                   onClick={handleCloseStockModal}
                 >
                   <span className="sr-only">Close</span>
-                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <XMarkIcon className="h-6 w-6" />
                 </button>
               </div>
 
+              {/* Modal content */}
               <div className="sm:flex sm:items-start">
                 <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
-                  <h3 className="text-base font-semibold leading-6 text-gray-900">
+                  <h3 className="text-lg font-semibold leading-6 text-gray-900">
                     Update Stock
                   </h3>
-                  <form onSubmit={handleStockSubmit} className="mt-4">
-                    <div className="space-y-4">
-                      {/* Product Dropdown */}
-                      <div>
-                        <label htmlFor="product" className="block text-sm font-medium text-gray-700">
-                          Product
-                        </label>
-                        <div className="relative mt-1">
-                          <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => handleSearchChange(e.target.value)}
-                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                            placeholder="Search product..."
-                          />
-                          {searchQuery && filteredProducts.length > 0 && (
-                            <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                              {filteredProducts.map((product) => (
-                                <div
-                                  key={product.id}
-                                  className={`relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-indigo-600 hover:text-white ${
-                                    stockForm.product_id === product.id ? 'bg-indigo-600 text-white' : 'text-gray-900'
-                                  }`}
-                                  onClick={() => {
-                                    setStockForm(prev => ({ ...prev, product_id: product.id }));
-                                    setSearchQuery(product.name);
-                                    // Close the dropdown by clearing filtered products
-                                    setFilteredProducts([]);
-                                  }}
-                                >
-                                  {product.name}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Current Stock Display */}
-                      {stockForm.product_id && (
-                        <div className="bg-gray-50 p-3 rounded-md">
-                          <div className="text-sm text-gray-700">
-                            <span className="font-medium">Current Available Stock: </span>
-                            {products.find(p => p.id === stockForm.product_id)?.stock || 0} items
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Stock Quantity */}
-                      <div>
-                        <label htmlFor="stock" className="block text-sm font-medium text-gray-700">
-                          New Stock Quantity
-                        </label>
+                  <form onSubmit={handleStockSubmit} className="mt-4 space-y-6">
+                    {/* Product Search */}
+                    <div>
+                      <label htmlFor="product" className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Product
+                      </label>
+                      <div className="relative">
                         <input
-                          type="number"
-                          min="0"
-                          value={stockForm.stock}
-                          onChange={(e) => setStockForm(prev => ({ ...prev, stock: parseInt(e.target.value) || 0 }))}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => handleSearchChange(e.target.value)}
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3"
+                          placeholder="Search product..."
                         />
+                        {searchQuery && filteredProducts.length > 0 && (
+                          <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                            {filteredProducts.map((product) => (
+                              <div
+                                key={product.id}
+                                className={`relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-indigo-50 ${
+                                  stockForm.product_id === product.id ? 'bg-indigo-50' : 'text-gray-900'
+                                }`}
+                                onClick={() => {
+                                  setStockForm(prev => ({ ...prev, product_id: product.id }));
+                                  setSearchQuery(product.name);
+                                  setFilteredProducts([]);
+                                }}
+                              >
+                                {product.name}
+                                {stockForm.product_id === product.id && (
+                                  <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600">
+                                    <CheckIcon className="h-5 w-5" />
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div className="mt-5 sm:mt-6 sm:flex sm:flex-row-reverse">
-                      <button
-                        type="submit"
-                        className="inline-flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 sm:ml-3 sm:w-auto"
-                      >
-                        Update Stock
-                      </button>
+                    {/* Current Stock */}
+                    {stockForm.product_id && (
+                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">Current Stock:</span>
+                          <span className="text-lg font-semibold text-gray-900">
+                            {products.find(p => p.id === stockForm.product_id)?.stock || 0}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Stock Input */}
+                    <div>
+                      <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-2">
+                        Stock to Add
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={stockForm.stock}
+                        onChange={(e) => setStockForm(prev => ({ ...prev, stock: parseInt(e.target.value) || 0 }))}
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3"
+                        placeholder="Enter stock quantity to add"
+                      />
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="mt-6 flex justify-end gap-3">
                       <button
                         type="button"
-                        className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
                         onClick={handleCloseStockModal}
+                        className="inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       >
                         Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="inline-flex justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                      >
+                        Update Stock
                       </button>
                     </div>
                   </form>

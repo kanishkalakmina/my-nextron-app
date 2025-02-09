@@ -477,7 +477,7 @@ const InventoryReport = () => {
                           const label = context.label || '';
                           const value = context.raw || 0;
                           const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-                          const percentage = ((value / total) * 100).toFixed(1);
+                          const percentage = ((Number(value) / total) * 100).toFixed(1);
                           return `${label}: ${value} (${percentage}%)`;
                         }
                       }

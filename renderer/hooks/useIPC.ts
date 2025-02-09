@@ -62,10 +62,12 @@ declare global {
         description?: string;
         price: number;
         category_id?: string;
+        stock: number;
       }) => Promise<{ success: boolean; error?: string }>;
       deleteProduct: (
         id: string
       ) => Promise<{ success: boolean; error?: string }>;
+
       searchProducts: (
         searchTerm: string
       ) => Promise<{ success: boolean; products?: any[]; error?: string }>;
@@ -506,6 +508,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     description?: string;
     price: number;
     category_id?: string;
+    stock: number;
   }) => {
     setLoading(true);
     try {
