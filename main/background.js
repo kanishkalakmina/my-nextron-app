@@ -3,7 +3,8 @@ import {
     app,
     ipcMain,
     dialog,
-    protocol
+    protocol,
+    BrowserWindow
 } from "electron";
 import serve from "electron-serve";
 import {
@@ -124,14 +125,17 @@ const registerIpcHandlers = () => {
     await app.whenReady();
 
     const mainWindow = createWindow("main", {
-        width: 1000,
-        height: 600,
+        width: 1920,
+        height: 1080,
+        autoHideMenuBar: true,
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
             nodeIntegration: false,
             contextIsolation: true,
         },
     });
+
+    // mainWindow.removeMenu();
 
     registerIpcHandlers();
 
