@@ -13,18 +13,28 @@ DELETE FROM categories;
 
 
 -- products
-INSERT INTO products (id, name, description, price, category_id, image_path, created_at, updated_at)
+INSERT INTO products (id, name, description, price, category_id, image_path, isNA, created_at, updated_at)
 VALUES
-('1f0e8400-e29b-41d4-a716-446655440040', 'Espresso', 'Strong black coffee made by forcing steam through ground coffee beans', 3.50, '1e0e8400-e29b-41d4-a716-446655440030', '', '2025-02-04 10:00:00', '2025-02-04 10:00:00'),
-('2f0e8400-e29b-41d4-a716-446655440041', 'Cappuccino', 'Espresso topped with steamed milk and milk foam', 4.00, '1e0e8400-e29b-41d4-a716-446655440030', '', '2025-02-04 10:05:00', '2025-02-04 10:05:00'),
-('3f0e8400-e29b-41d4-a716-446655440042', 'Blueberry Muffin', 'Freshly baked muffin with blueberry filling', 2.75, '2e0e8400-e29b-41d4-a716-446655440031', '', '2025-02-04 10:10:00', '2025-02-04 10:10:00'),
-('4f0e8400-e29b-41d4-a716-446655440043', 'Chicken Sandwich', 'Grilled chicken sandwich with lettuce, tomato, and mayo', 6.50, '3e0e8400-e29b-41d4-a716-446655440032', '', '2025-02-04 10:15:00', '2025-02-04 10:15:00'),
-('5f0e8400-e29b-41d4-a716-446655440044', 'Caesar Salad', 'Crisp lettuce with Caesar dressing, croutons, and parmesan cheese', 5.00, '4e0e8400-e29b-41d4-a716-446655440033', '', '2025-02-04 10:20:00', '2025-02-04 10:20:00'),
-('6f0e8400-e29b-41d4-a716-446655440045', 'French Fries', 'Crispy golden fries served with a choice of dipping sauces', 3.00, '5e0e8400-e29b-41d4-a716-446655440034', '', '2025-02-04 10:25:00', '2025-02-04 10:25:00'),
-('7f0e8400-e29b-41d4-a716-446655440046', 'Iced Tea', 'Chilled tea served with ice and a slice of lemon', 2.50, '1e0e8400-e29b-41d4-a716-446655440030', '', '2025-02-04 10:30:00', '2025-02-04 10:30:00'),
-('8f0e8400-e29b-41d4-a716-446655440047', 'Chocolate Croissant', 'Buttery, flaky croissant filled with rich chocolate', 3.25, '2e0e8400-e29b-41d4-a716-446655440031', '', '2025-02-04 10:35:00', '2025-02-04 10:35:00'),
-('9f0e8400-e29b-41d4-a716-446655440048', 'Vegetarian Wrap', 'A healthy wrap filled with fresh vegetables, hummus, and avocado', 5.75, '3e0e8400-e29b-41d4-a716-446655440032', '', '2025-02-04 10:40:00', '2025-02-04 10:40:00'),
-('10f0e8400-e29b-41d4-a716-446655440049', 'Fruit Salad', 'Mixed fresh fruits with a hint of lemon juice', 4.25, '4e0e8400-e29b-41d4-a716-446655440033', '', '2025-02-04 10:45:00', '2025-02-04 10:45:00');
+('1f0e8400-e29b-41d4-a716-446655440040', 'Espresso', 'Strong black coffee made by forcing steam through ground coffee beans', 3.50, '1e0e8400-e29b-41d4-a716-446655440030', '', 1, '2025-02-04 10:00:00', '2025-02-04 10:00:00'),
+('2f0e8400-e29b-41d4-a716-446655440041', 'Cappuccino', 'Espresso topped with steamed milk and milk foam', 4.00, '1e0e8400-e29b-41d4-a716-446655440030', '', 1, '2025-02-04 10:05:00', '2025-02-04 10:05:00'),
+('3f0e8400-e29b-41d4-a716-446655440042', 'Blueberry Muffin', 'Freshly baked muffin with blueberry filling', 2.75, '2e0e8400-e29b-41d4-a716-446655440031', '', 1, '2025-02-04 10:10:00', '2025-02-04 10:10:00'),
+('4f0e8400-e29b-41d4-a716-446655440043', 'Chicken Sandwich', 'Grilled chicken sandwich with lettuce, tomato, and mayo', 6.50, '3e0e8400-e29b-41d4-a716-446655440032', '', 1, '2025-02-04 10:15:00', '2025-02-04 10:15:00'),
+('5f0e8400-e29b-41d4-a716-446655440044', 'Caesar Salad', 'Crisp lettuce with Caesar dressing, croutons, and parmesan cheese', 5.00, '4e0e8400-e29b-41d4-a716-446655440033', '', 1, '2025-02-04 10:20:00', '2025-02-04 10:20:00'),
+('6f0e8400-e29b-41d4-a716-446655440045', 'French Fries', 'Crispy golden fries served with a choice of dipping sauces', 3.00, '5e0e8400-e29b-41d4-a716-446655440034', '', 1, '2025-02-04 10:25:00', '2025-02-04 10:25:00'),
+('7f0e8400-e29b-41d4-a716-446655440046', 'Iced Tea', 'Chilled tea served with ice and a slice of lemon', 2.50, '1e0e8400-e29b-41d4-a716-446655440030', '', 1, '2025-02-04 10:30:00', '2025-02-04 10:30:00'),
+('8f0e8400-e29b-41d4-a716-446655440047', 'Chocolate Croissant', 'Buttery, flaky croissant filled with rich chocolate', 3.25, '2e0e8400-e29b-41d4-a716-446655440031', '', 1, '2025-02-04 10:35:00', '2025-02-04 10:35:00'),
+('9f0e8400-e29b-41d4-a716-446655440048', 'Vegetarian Wrap', 'A healthy wrap filled with fresh vegetables, hummus, and avocado', 5.75, '3e0e8400-e29b-41d4-a716-446655440032', '', 1, '2025-02-04 10:40:00', '2025-02-04 10:40:00'),
+('10f0e8400-e29b-41d4-a716-446655440049', 'Fruit Salad', 'Mixed fresh fruits with a hint of lemon juice', 4.25, '4e0e8400-e29b-41d4-a716-446655440033', '', 1, '2025-02-04 10:45:00', '2025-02-04 10:45:00'),
+('11f0e8400-e29b-41d4-a716-446655440050', 'Latte', 'Creamy coffee made with espresso and steamed milk', 4.50, '1e0e8400-e29b-41d4-a716-446655440030', '', 1, '2025-02-04 11:00:00', '2025-02-04 11:00:00'),
+('12f0e8400-e29b-41d4-a716-446655440051', 'Bagel with Cream Cheese', 'Freshly baked bagel with a generous spread of cream cheese', 3.00, '2e0e8400-e29b-41d4-a716-446655440031', '', 1, '2025-02-04 11:05:00', '2025-02-04 11:05:00'),
+('13f0e8400-e29b-41d4-a716-446655440052', 'Green Tea', 'Refreshing green tea with a hint of jasmine', 2.75, '1e0e8400-e29b-41d4-a716-446655440030', '', 1, '2025-02-04 11:10:00', '2025-02-04 11:10:00'),
+('14f0e8400-e29b-41d4-a716-446655440053', 'Cheesecake', 'Creamy New York style cheesecake with strawberry topping', 5.50, '2e0e8400-e29b-41d4-a716-446655440031', '', 1, '2025-02-04 11:15:00', '2025-02-04 11:15:00'),
+('15f0e8400-e29b-41d4-a716-446655440054', 'Turkey Club', 'Triple-decker sandwich with turkey, bacon, lettuce, and tomato', 7.00, '3e0e8400-e29b-41d4-a716-446655440032', '', 1, '2025-02-04 11:20:00', '2025-02-04 11:20:00'),
+('16f0e8400-e29b-41d4-a716-446655440055', 'Greek Salad', 'Fresh salad with feta cheese, olives, and cucumbers', 5.25, '4e0e8400-e29b-41d4-a716-446655440033', '', 1, '2025-02-04 11:25:00', '2025-02-04 11:25:00'),
+('17f0e8400-e29b-41d4-a716-446655440056', 'Onion Rings', 'Crispy fried onion rings with dipping sauce', 4.00, '5e0e8400-e29b-41d4-a716-446655440034', '', 1, '2025-02-04 11:30:00', '2025-02-04 11:30:00'),
+('18f0e8400-e29b-41d4-a716-446655440057', 'Lemonade', 'Freshly squeezed lemonade with a hint of mint', 3.25, '1e0e8400-e29b-41d4-a716-446655440030', '', 1, '2025-02-04 11:35:00', '2025-02-04 11:35:00'),
+('19f0e8400-e29b-41d4-a716-446655440058', 'Apple Pie', 'Classic American apple pie with cinnamon', 4.75, '2e0e8400-e29b-41d4-a716-446655440031', '', 1, '2025-02-04 11:40:00', '2025-02-04 11:40:00'),
+('20f0e8400-e29b-41d4-a716-446655440059', 'Tuna Melt', 'Grilled sandwich with tuna and melted cheese', 6.25, '3e0e8400-e29b-41d4-a716-446655440032', '', 1, '2025-02-04 11:45:00', '2025-02-04 11:45:00');
 
 DELETE FROM products;
 
@@ -86,4 +96,12 @@ DELETE FROM invoiced_item;
 
 -- orders
 
+-- Insert data into the Stock table
+INSERT INTO Stock (id, product_id, stock_quantity, updated_date) VALUES
+('stock-1', '1f0e8400-e29b-41d4-a716-446655440040', 100, '2025-02-04 10:00:00'),
+('stock-2', '2f0e8400-e29b-41d4-a716-446655440041', 100, '2025-02-04 10:05:00'),
+('stock-3', '11f0e8400-e29b-41d4-a716-446655440050', 100, '2025-02-04 11:00:00'),
+('stock-4', '12f0e8400-e29b-41d4-a716-446655440051', 100, '2025-02-04 11:05:00');
+
+DELETE FROM Stock;
 
