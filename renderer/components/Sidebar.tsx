@@ -105,14 +105,14 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`h-screen bg-white border-r transition-all duration-300 ${
+      className={`h-screen bg-gradient-to-b from-white to-gray-50 border-r transition-all duration-300 ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
-      <div className="flex h-16 flex-shrink-0 items-center justify-between border-b px-4">
+      <div className="flex h-16 flex-shrink-0 items-center justify-between border-b px-4 bg-white">
         {!isCollapsed && (
           <h1
-            className="text-2xl font-bold text-blue-500"
+            className="text-2xl font-bold text-indigo-600"
             style={{ fontFamily: "'Dancing Script', cursive" }}
           >
             𝓑𝓲𝓼𝓽𝓻𝓸
@@ -121,40 +121,52 @@ export default function Sidebar() {
         {!isMobile && (
           <button
             onClick={toggleSidebar}
-            className="rounded-lg p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+            className="rounded-lg p-1.5 text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 transition-colors duration-200"
           >
             {isCollapsed ? (
-              <ChevronRightIcon className="h-6 w-6" />
+              <ChevronRightIcon className="h-5 w-5" />
             ) : (
-              <ChevronLeftIcon className="h-6 w-6" />
+              <ChevronLeftIcon className="h-5 w-5" />
             )}
           </button>
         )}
       </div>
-      <div className="h-[calc(100vh-4rem)] overflow-y-auto">
-        <nav className="space-y-1 px-2 py-2">
+      <div className="h-[calc(100vh-4rem)] overflow-y-auto py-4">
+        <nav className="space-y-1 px-3">
           {filteredNavigation.map((item) => {
             const isActive = router.pathname === item.href;
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                className={`group flex items-center rounded-md px-2 py-2 text-sm font-medium ${
+                className={`group relative flex items-center rounded-lg px-4 py-3.5 text-sm font-medium transition-all duration-200 ${
                   isActive
-                    ? "bg-indigo-50 text-indigo-600"
+                    ? "bg-indigo-50 text-indigo-600 shadow-sm"
                     : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
                 }`}
                 title={isCollapsed ? item.name : ""}
               >
+                {isActive && (
+                  <div className="absolute left-0 top-1/2 h-10 w-1 -translate-y-1/2 rounded-r-full bg-indigo-600" />
+                )}
                 <item.icon
                   className={`${
                     isActive
                       ? "text-indigo-600"
-                      : "text-gray-400 group-hover:text-gray-500"
-                  } h-6 w-6 flex-shrink-0 ${isCollapsed ? "" : "mr-3"}`}
+                      : "text-gray-400 group-hover:text-gray-600"
+                  } h-6 w-6 flex-shrink-0 transition-colors duration-200 ${
+                    isCollapsed ? "" : "mr-4"
+                  }`}
                   aria-hidden="true"
                 />
-                {!isCollapsed && <span>{item.name}</span>}
+                {!isCollapsed && (
+                  <span className="truncate text-base">{item.name}</span>
+                )}
+                {!isCollapsed && isActive && (
+                  <span
+                    className={`absolute inset-y-0 right-0 w-1 bg-indigo-600 rounded-l-full`}
+                  />
+                )}
               </Link>
             );
           })}
