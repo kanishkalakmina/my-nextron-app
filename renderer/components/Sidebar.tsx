@@ -185,7 +185,7 @@ export default function Sidebar() {
       <div className="flex-shrink-0 border-t border-gray-200 p-4">
         {!isCollapsed && (
           <div className="text-center text-xs text-gray-500 font-bold">
-            <p className="mt-2">© 2025 All rights reserved</p>
+            <p className="mt-2">© 2025 All Rights Reserved</p>
             <p>Developed by Skyline Code</p>
           </div>
         )}
