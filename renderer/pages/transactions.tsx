@@ -48,12 +48,25 @@ export default function Transactions() {
       setLoading(true);
       setError(null);
       const result = await window.electron.getAllPayments();
-      if (result?.success && Array.isArray(result.payments)) {
-        setTransactions(result.payments);
-      } else {
-        setError(result?.error || "Failed to load transactions");
-        setTransactions([]);
+      const isPermission = localStorage.getItem("userRole");
+      const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+      console.log(userData.username);
+      console.log(isPermission);
+
+      if (isPermission === "Administrator" || isPermission === "Manager") {
+        if (result?.success && Array.isArray(result.payments)) {
+          setTransactions(result.payments);
+        } else {
+          setError(result?.error || "Failed to load transactions");
+          setTransactions([]);
+        }
       }
+
+      if (isPermission === "Cashier") {
+        const filteredResult = result.payments.filter(payment => payment.cashier === userData.username);
+        setTransactions(filteredResult);
+      }
+
     } catch (error) {
       setError("Error loading transactions");
       setTransactions([]);
@@ -69,7 +82,7 @@ export default function Transactions() {
     // Filter by search query (both invoice and cashier)
     if (searchQuery.trim()) {
       const searchLower = searchQuery.toLowerCase();
-      filtered = filtered.filter(t => 
+      filtered = filtered.filter(t =>
         t.order_id.toLowerCase().includes(searchLower) ||
         (t.cashier && t.cashier.toLowerCase().includes(searchLower))
       );
@@ -558,11 +571,10 @@ export default function Transactions() {
                           <button
                             key={page}
                             onClick={() => handlePageChange(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              currentPage === page
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${currentPage === page
                                 ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
                                 : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
-                            }`}
+                              }`}
                           >
                             {page}
                           </button>

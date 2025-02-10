@@ -38,7 +38,7 @@ export const StockProvider = ({ children }: { children: React.ReactNode }) => {
       const result = await getAllProducts();
       if (result && Array.isArray(result)) {
         const lowStockProducts = result
-          .filter(product => product.stock <= 5)
+          .filter(product => product.isNA === false && product.stock <= 5)
           .map(product => ({
             id: product.id,
             productName: product.name,

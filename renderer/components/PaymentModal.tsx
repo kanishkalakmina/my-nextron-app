@@ -42,7 +42,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const billRef = useRef<HTMLDivElement>(null);
   const hiddenBillRef = useRef<HTMLDivElement>(null);
 
-  const { checkStockAfterPayment } = useStock();
+   const { checkLowStock } = useStock();
 
   if (!isOpen) return null;
 
@@ -194,7 +194,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       }
       
       // Check stock levels after successful payment
-      await checkStockAfterPayment(orderItems);
+      await checkLowStock();
       printBill();
       onPaymentComplete();
       onClose();
