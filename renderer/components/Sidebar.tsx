@@ -70,12 +70,20 @@ const navigation = [
 
 export default function Sidebar() {
   const router = useRouter();
-  const userRole =
-    typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+  const [userRole, setUserRole] = useState(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Handle window size check in useEffect to avoid SSR issues
   useEffect(() => {
+    const checkIfMobile = () => {
+      const isMobileView = window.innerWidth < 1024; // lg breakpoint
+      setIsMobile(isMobileView);
+      if (isMobileView) {
+        setIsCollapsed(true);
+      }
+    };
+
     // Check if we're on mobile on mount
     checkIfMobile();
 
@@ -86,19 +94,21 @@ export default function Sidebar() {
     return () => window.removeEventListener("resize", checkIfMobile);
   }, []);
 
-  const checkIfMobile = () => {
-    const isMobileView = window.innerWidth < 1024; // lg breakpoint
-    setIsMobile(isMobileView);
-    if (isMobileView) {
-      setIsCollapsed(true);
+  // Accessing localStorage only on the client side inside useEffect
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const role = localStorage.getItem("userRole");
+      setUserRole(role);
     }
-  };
+  }, []);
 
   const toggleSidebar = () => {
     if (!isMobile) {
       setIsCollapsed(!isCollapsed);
     }
   };
+
+  // Filter navigation based on user role after it is set
   const filteredNavigation = navigation.filter(
     (item) => userRole && hasPageAccess(userRole, item.page)
   );

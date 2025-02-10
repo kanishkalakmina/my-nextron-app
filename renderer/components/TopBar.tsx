@@ -21,6 +21,8 @@ interface LowStockNotification {
 
 interface TopBarProps {
   onNotificationClick?: () => void;
+  notifications?: LowStockNotification[];
+  onDismissNotification?: (id: string) => void;
 }
 
 interface NotificationTypes {
@@ -227,3 +229,4 @@ const TopBar = ({ onNotificationClick }: TopBarProps) => {
 };
 
 export default TopBar;
+
