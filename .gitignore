@@ -11,5 +11,5 @@ next-env.d.ts
 # build
 /app
 dist
-/db.sqlite
-renderer/public/upload
+# /db.sqlite
+# renderer/public/upload
