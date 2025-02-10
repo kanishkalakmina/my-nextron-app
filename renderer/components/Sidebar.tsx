@@ -115,7 +115,7 @@ export default function Sidebar() {
 
   return (
     <div
-      className={`h-screen bg-gradient-to-b from-white to-gray-50 border-r transition-all duration-300 ${
+      className={`h-screen bg-gradient-to-b from-white to-gray-50 border-r transition-all duration-300 flex flex-col ${
         isCollapsed ? "w-16" : "w-64"
       }`}
     >
@@ -141,7 +141,7 @@ export default function Sidebar() {
           </button>
         )}
       </div>
-      <div className="h-[calc(100vh-4rem)] overflow-y-auto py-4">
+      <div className="flex-1 overflow-y-auto py-4">
         <nav className="space-y-1 px-3">
           {filteredNavigation.map((item) => {
             const isActive = router.pathname === item.href;
@@ -182,6 +182,16 @@ export default function Sidebar() {
           })}
         </nav>
       </div>
+      <div className="flex-shrink-0 border-t border-gray-200 p-4">
+        {!isCollapsed && (
+          <div className="text-center text-xs text-gray-500 font-bold">
+            <p className="mt-2">© 2025 All rights reserved</p>
+            <p>Developed by Skyline Code</p>
+          </div>
+        )}
+
+      </div>
+
     </div>
   );
 }
