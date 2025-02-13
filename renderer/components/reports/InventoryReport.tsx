@@ -232,15 +232,15 @@ const InventoryReport = () => {
         {/* Total Products Card */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Products</p>
-                <p className="text-2xl font-semibold text-gray-900">{stockSummary.totalItems}</p>
-              </div>
+            <div className="flex items-start">
               <div className="p-3 bg-blue-50 rounded-full">
                 <svg className="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Products</p>
+                <p className="text-2xl font-semibold text-gray-900">{stockSummary.totalItems}</p>
               </div>
             </div>
           </div>
@@ -249,13 +249,13 @@ const InventoryReport = () => {
         {/* Low Stock Items Card */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Low Stock Items</p>
-                <p className="text-2xl font-semibold text-orange-500">{stockSummary.lowStockItems}</p>
-              </div>
+            <div className="flex items-start">
               <div className="p-3 bg-orange-50 rounded-full">
                 <ArrowDownIcon className="w-6 h-6 text-orange-500" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Low Stock Items</p>
+                <p className="text-2xl font-semibold text-orange-500">{stockSummary.lowStockItems}</p>
               </div>
             </div>
           </div>
@@ -264,13 +264,13 @@ const InventoryReport = () => {
         {/* Out of Stock Items Card */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Out of Stock Items</p>
-                <p className="text-2xl font-semibold text-red-500">{stockSummary.outOfStockItems}</p>
-              </div>
+            <div className="flex items-start">
               <div className="p-3 bg-red-50 rounded-full">
                 <XMarkIcon className="w-6 h-6 text-red-500" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Out of Stock Items</p>
+                <p className="text-2xl font-semibold text-red-500">{stockSummary.outOfStockItems}</p>
               </div>
             </div>
           </div>
@@ -279,13 +279,13 @@ const InventoryReport = () => {
         {/* Healthy Stock Items Card */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Healthy Stock Items</p>
-                <p className="text-2xl font-semibold text-green-500">{stockSummary.healthyStockItems}</p>
-              </div>
+            <div className="flex items-start">
               <div className="p-3 bg-green-50 rounded-full">
                 <ArrowUpIcon className="w-6 h-6 text-green-500" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Healthy Stock Items</p>
+                <p className="text-2xl font-semibold text-green-500">{stockSummary.healthyStockItems}</p>
               </div>
             </div>
           </div>
@@ -294,15 +294,15 @@ const InventoryReport = () => {
         {/* Total Stock Value Card */}
         <div className="bg-white rounded-lg shadow">
           <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Stock Value</p>
-                <p className="text-2xl font-semibold text-purple-500">Rs. {stockSummary.totalValue.toFixed(2)}</p>
-              </div>
+            <div className="flex items-start">
               <div className="p-3 bg-purple-50 rounded-full">
                 <svg className="w-6 h-6 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Stock Value</p>
+                <p className="text-2xl font-semibold text-purple-500">Rs. {stockSummary.totalValue.toFixed(2)}</p>
               </div>
             </div>
           </div>
