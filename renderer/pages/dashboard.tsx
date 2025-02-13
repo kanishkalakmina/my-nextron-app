@@ -475,54 +475,46 @@ const DashboardPage = () => {
               <div className="grid grid-cols-3 gap-2 mt-4">
                 <button
                   onClick={handlePayClick}
-                  className="flex items-center justify-center gap-2 bg-[#4CAF50] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity"
+                  disabled={orderItems.length === 0}
+                  className={`flex items-center justify-center gap-2 py-2 px-4 rounded transition-opacity ${
+                    orderItems.length === 0 
+                      ? 'bg-[#4CAF50] hover:opacity-90 text-white cursor-not-allowed'
+                      : 'bg-[#4CAF50] hover:opacity-90 text-white'
+                  }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="M3 10h18M7 15h2m2 0h2"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                    <path d="M3 10h18M7 15h2m2 0h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   Pay
                 </button>
+
                 <button
-                  className="flex items-center justify-center gap-2 bg-[#26A69A] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity"
                   onClick={handleHoldOrder}
+                  disabled={orderItems.length === 0}
+                  className={`flex items-center justify-center gap-2 py-2 px-4 rounded transition-opacity ${
+                    orderItems.length === 0 
+                      ? 'bg-[#26A69A] hover:opacity-90 text-white cursor-not-allowed'
+                      : 'bg-[#26A69A] hover:opacity-90 text-white'
+                  }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <rect
-                      x="7"
-                      y="5"
-                      width="3"
-                      height="14"
-                      fill="white"
-                      rx="0.5"
-                    />
-                    <rect
-                      x="14"
-                      y="5"
-                      width="3"
-                      height="14"
-                      fill="white"
-                      rx="0.5"
-                    />
+                    <rect x="7" y="5" width="3" height="14" fill="currentColor" rx="0.5" />
+                    <rect x="14" y="5" width="3" height="14" fill="currentColor" rx="0.5" />
                   </svg>
                   Hold
                 </button>
+
                 <button
                   onClick={handleCancelOrder}
-                  className="flex items-center justify-center gap-2 bg-[#F44336] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity"
+                  disabled={orderItems.length === 0}
+                  className={`flex items-center justify-center gap-2 py-2 px-4 rounded transition-opacity ${
+                    orderItems.length === 0 
+                      ? 'bg-[#F44336] hover:opacity-90 text-white cursor-not-allowed' 
+                      : 'bg-[#F44336] hover:opacity-90 text-white'
+                  }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="M6 18L18 6M6 6l12 12"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
+                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                   Cancel
                 </button>
@@ -593,6 +585,7 @@ const DashboardPage = () => {
                       : handleNumberClick(num.toString())
                   }
                   className="py-4 text-center border border-blue-200 rounded text-blue-500 hover:bg-blue-50 transition-colors text-lg"
+                  disabled={recalledOrderId !== null}
                 >
                   {num}
                 </button>
