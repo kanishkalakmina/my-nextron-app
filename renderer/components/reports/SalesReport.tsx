@@ -19,11 +19,14 @@ const SalesReport = () => {
   const [salesData, setSalesData] = useState<SalesData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [dateRange, setDateRange] = useState({
-    start: format(new Date(), 'yyyy-MM-dd'),
-    end: format(new Date(), 'yyyy-MM-dd')
+  const [dateRange, setDateRange] = useState(() => {
+    const today = new Date();
+    return {
+      start: format(startOfMonth(today), 'yyyy-MM-dd'),
+      end: format(endOfMonth(today), 'yyyy-MM-dd')
+    };
   });
-  const [rangeType, setRangeType] = useState<DateRangeType>('daily');
+  const [rangeType, setRangeType] = useState<DateRangeType>('monthly');
   const [viewType, setViewType] = useState<ViewType>('table');
 
   // Add pagination state
