@@ -22,6 +22,7 @@ interface User {
   last_login?: string;
   created_at: string;
   updated_at?: string;
+  role_name?: string;
 }
 
 interface NewUser {
@@ -281,6 +282,22 @@ const UsersPage = () => {
     });
   };
 
+  // Add a function to sort users with admin at top
+  const sortedUsers = (users: User[]) => {
+    return [...users].sort((a, b) => {
+      // Check if either user has a role_name of "Admin"
+      const isAAdmin = a.role_name?.toLowerCase() === "admin";
+      const isBAdmin = b.role_name?.toLowerCase() === "admin";
+
+      // Put Admin at the top
+      if (isAAdmin && !isBAdmin) return -1;
+      if (!isAAdmin && isBAdmin) return 1;
+
+      // For non-admin users, sort by username
+      return a.username.localeCompare(b.username);
+    });
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -332,8 +349,8 @@ const UsersPage = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.map((user: any) => (
-                <tr key={user.id}>
+              {sortedUsers(filteredUsers).map((user: any) => (
+                <tr key={user.id} className={user.role_name?.toLowerCase() === "admin" ? "bg-gray-50" : ""}>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <div className="text-sm text-gray-900">{user.username}</div>
                   </td>
@@ -369,26 +386,27 @@ const UsersPage = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex justify-center items-center space-x-3">
-                      <button
+                      {user.role_name?.toLowerCase() != "administrator" &&   <button
                         onClick={() => handleOpenModal(user)}
                         className="inline-flex items-center px-2.5 py-1.5 border border-indigo-500 text-indigo-600 hover:bg-indigo-50 rounded-md transition duration-150 ease-in-out"
                         title="Edit user"
                       >
                         <PencilSquareIcon className="h-4 w-4 mr-1" />
                         <span>Edit</span>
-                      </button>
+                      </button> }
+                    
                       <button
                         onClick={() => {
                           setUserToResetPassword(user);
                           setIsResetPasswordModalOpen(true);
                         }}
-                        className="inline-flex items-center px-2.5 py-1.5 border border-blue-500 text-blue-600 hover:bg-blue-50 rounded-md transition duration-150 ease-in-out"
+                        className="inline-flex items-center px-2.5 py-1.5 border border-red-500 text-red-600 hover:bg-red-50 rounded-md transition duration-150 ease-in-out"
                         title="Reset password"
                       >
                         <KeyIcon className="h-4 w-4 mr-1" />
                         <span>Reset</span>
                       </button>
-                      <button
+                      {/* <button
                         onClick={() => {
                           setUserToDelete(user);
                           setIsDeleteModalOpen(true);
@@ -398,7 +416,7 @@ const UsersPage = () => {
                       >
                         <TrashIcon className="h-4 w-4 mr-1" />
                         <span>Delete</span>
-                      </button>
+                      </button> */}
                     </div>
                   </td>
                 </tr>
