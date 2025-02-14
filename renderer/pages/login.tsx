@@ -88,7 +88,7 @@ const Login = () => {
               </svg>
             </div>
             <h1 className="text-4xl font-bold mb-4 text-center">
-              Welcome to POS System
+              Welcome to SkyLine Code
             </h1>
             <p className="text-xl text-center text-blue-800/80">
               Streamline your business operations
@@ -211,7 +211,7 @@ const Login = () => {
                   </button>
 
                   <div className="text-center text-sm text-blue-600/70">
-                    Secure login powered by POS System
+                    Secure login powered by SkyLine Code
                   </div>
                 </form>
               </div>
