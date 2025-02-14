@@ -20,6 +20,9 @@ interface PaymentModalProps {
     price: number;
     quantity: number;
   }>;
+  discount: number;
+  tax: number;
+  total: number;
   onPaymentComplete: () => void;
 }
 
@@ -27,17 +30,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   orderItems,
+  discount,
+  tax,
+  total,
   onPaymentComplete,
 }) => {
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("cash");
   
-  // Hardcoded values instead of inputs
-  const discount = 0; // Set your default discount value
-  const tax = 0;     // Set your default tax value
-
   const subtotal = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  const total = subtotal - discount + tax;
 
   const billRef = useRef<HTMLDivElement>(null);
   const hiddenBillRef = useRef<HTMLDivElement>(null);
@@ -188,6 +189,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       };
 
       const result = await window.electron.savePayment(paymentDetails);
+      console.log(result);
       if (!result.success) {
         toast.error(result.error || "Failed to process payment");
         return;
@@ -202,6 +204,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       console.error("Payment error:", error);
       toast.error("Failed to process payment. Please try again.");
     }
+    setAmount("");
   };
 
   const getChange = () => {
@@ -215,7 +218,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Payment</h2>
           <button
-            onClick={onClose}
+            onClick={ (e)=> {onClose(); setAmount("")} }
             className="text-gray-500 hover:text-gray-700"
           >
             <XMarkIcon className="h-6 w-6" />
@@ -273,10 +276,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <span>Subtotal:</span>
               <span>Rs. {subtotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between mb-2">
-              <span>Discount:</span>
-              <span>Rs. {discount.toFixed(2)}</span>
-            </div>
+            {discount > 0 && (
+              <div className="flex justify-between mb-2">
+                <span>Discount:</span>
+                <span>- Rs. {discount.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between mb-2">
               <span>Tax:</span>
               <span>Rs. {tax.toFixed(2)}</span>
@@ -342,6 +347,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             amountReceived={parseFloat(amount) || undefined}
             change={getChange()}
             paymentMethod={paymentMethod}
+            billRefNo={createTimestampId()}
           />
         </div>
       </div>

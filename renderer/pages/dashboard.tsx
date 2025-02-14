@@ -9,6 +9,7 @@ import {
   XMarkIcon,
   PlusIcon,
   MinusIcon,
+  BackspaceIcon,
 } from "@heroicons/react/24/outline";
 import Layout from "../components/Layout";
 import { useRouter } from "next/router";
@@ -54,6 +55,9 @@ const DashboardPage = () => {
     { id: "all", name: "All" },
   ]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+  const [discount, setDiscount] = useState(0);
+  const [tax, setTax] = useState(0.5);
+  
   const [activeCategory, setActiveCategory] = useState("all");
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [holdReference, setHoldReference] = useState("");
@@ -62,6 +66,8 @@ const DashboardPage = () => {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showDiscountPad, setShowDiscountPad] = useState(false);
+  const [tempDiscount, setTempDiscount] = useState('');
 
   // Fetch categories and products when component mounts
   useEffect(() => {
@@ -178,6 +184,7 @@ const DashboardPage = () => {
   const handlePaymentComplete = async () => {
     // Clear the order after successful payment
     setOrderItems([]);
+    setDiscount(0);
     toast.success("Payment completed successfully!");
   };
 
@@ -275,10 +282,22 @@ const DashboardPage = () => {
     setOrderItems([]);
     setRecalledOrderId(null);
     setHoldReference("");
+    setDiscount(0);
   };
 
   // Calculate total without discount and tax
   const subtotal = orderItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
+
+  // Calculate discount amount
+  const calculateDiscount = () => {
+    return (subtotal * discount) / 100;
+  };
+
+  const calculateTax = () => {
+    return (subtotal * tax) / 100;
+  };
+
+  const total = subtotal - calculateDiscount() + calculateTax();
 
   const getImageUrl = (imagePath: string) => {
     if (!imagePath) return "";
@@ -314,6 +333,29 @@ const DashboardPage = () => {
       return 'border-red-100 animate-border-blink';
     }
     return 'border-gray-100';
+  };
+
+  // Add number pad handler functions
+  const handleDiscountNumber = (num: string) => {
+    if (num === 'back') {
+      setTempDiscount(prev => prev.slice(0, -1));
+      return;
+    }
+    if (num === 'clear') {
+      setTempDiscount('');
+      return;
+    }
+    if (num === 'save') {
+      const newDiscount = Math.min(Number(tempDiscount), 100);
+      setDiscount(newDiscount);
+      setShowDiscountPad(false);
+      setTempDiscount('');
+      return;
+    }
+    setTempDiscount(prev => {
+      const newValue = prev + num;
+      return Number(newValue) <= 100 ? newValue : prev;
+    });
   };
 
   return (
@@ -466,6 +508,7 @@ const DashboardPage = () => {
                     onClick={(e) => {
                       e.stopPropagation();
                       removeItem(item.id);
+                      setDiscount(0);
                     }}
                     className="p-1 rounded bg-red-500 text-white hover:bg-red-600 w-8 h-8 flex items-center justify-center"
                   >
@@ -479,19 +522,58 @@ const DashboardPage = () => {
           {/* Order Summary */}
           <div className="border-t border-gray-200 p-4">
             <div className="space-y-2">
+              <div className="flex justify-between items-center text-red-600">
+                <span>Discount</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${discount}%`}
+                    onClick={() => {
+                      setShowDiscountPad(true);
+                      setTempDiscount(discount.toString());
+                    }}
+                    className="w-20 px-2 py-1 border rounded text-right cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center text-red-600">
+                <span>Tax</span>
+                <div className="flex items-center gap-2">
+                  <span>{tax} %</span>
+                </div>
+              </div>
+
               <div className="flex justify-between">
                 <span>Items</span>
                 <span>
                   {orderItems.reduce((sum, item) => sum + item.quantity, 0)}
                 </span>
               </div>
+
               <div className="flex justify-between">
                 <span>Subtotal</span>
                 <span>Rs. {subtotal.toFixed(2)}</span>
               </div>
+
+              {discount > 0 && (
+                <div className="flex justify-between text-red-600">
+                  <span>Discount ({discount}%)</span>
+                  <span>- Rs. {calculateDiscount().toFixed(2)}</span>
+                </div>
+              )}
+              {
+                tax > 0 && (
+                  <div className="flex justify-between text-blue-600">
+                    <span>Tax ({tax}%)</span>
+                    <span>Rs. {calculateTax().toFixed(2)}</span>
+                  </div>
+                )
+              }
               <div className="flex justify-between font-bold text-lg pt-2 border-t">
                 <span>Total:</span>
-                <span>Rs. {subtotal.toFixed(2)}</span>
+                <span>Rs. {total.toFixed(2)}</span>
               </div>
 
               {/* Action Buttons */}
@@ -629,8 +711,66 @@ const DashboardPage = () => {
         isOpen={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         orderItems={orderItems}
+        discount={calculateDiscount()}
+        tax={calculateTax()}
+        total={total}
         onPaymentComplete={handlePaymentComplete}
       />
+
+      {/* Number Pad Popup */}
+      {showDiscountPad && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 w-80">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Enter Discount %</h3>
+              <button 
+                onClick={() => setShowDiscountPad(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+
+            <input
+              type="text"
+              className="w-full text-right text-2xl p-2 mb-4 border rounded"
+              value={tempDiscount}
+              readOnly
+            />
+
+            <div className="grid grid-cols-3 gap-2">
+              {[7, 8, 9, 4, 5, 6, 1, 2, 3, 'clear', 0, 'back'].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => handleDiscountNumber(num.toString())}
+                  className={`p-3 text-lg rounded ${
+                    typeof num === 'number'
+                      ? 'bg-white hover:bg-gray-50 border'
+                      : num === 'clear'
+                      ? 'bg-red-50 hover:bg-red-100 text-red-600'
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  {num === 'back' ? (
+                    <BackspaceIcon className="h-6 w-6 mx-auto" />
+                  ) : num === 'clear' ? (
+                    'C'
+                  ) : (
+                    num
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => handleDiscountNumber('save')}
+              className="w-full mt-2 bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+            >
+              Apply Discount
+            </button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };
