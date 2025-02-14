@@ -35,7 +35,17 @@ interface Product {
   description?: string;
   category_id?: string;
   image_path?: string;
+  stock: number;
+  isNA: boolean;
 }
+
+const lowStockAnimation = `
+  @keyframes borderBlink {
+    0% { border-color: #FEE2E2; }
+    50% { border-color:rgb(205, 111, 111); }
+    100% { border-color: #FEE2E2; }
+  }
+`;
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -299,6 +309,13 @@ const DashboardPage = () => {
     }
   };
 
+  const getLowStockClass = (product: Product) => {
+    if (product.stock <= 5 && !product.isNA) {
+      return 'border-red-100 animate-border-blink';
+    }
+    return 'border-gray-100';
+  };
+
   return (
     <Layout>
       <Head>
@@ -352,8 +369,14 @@ const DashboardPage = () => {
                   <div
                     key={product.id}
                     onClick={() => addToOrder(product)}
-                    className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 flex flex-col h-[200px]"
+                    className={`bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 border ${getLowStockClass(product)} flex flex-col h-[200px]`}
                   >
+                    <style jsx global>{`
+                      .animate-border-blink {
+                        animation: borderBlink 1.5s infinite;
+                      }
+                      ${lowStockAnimation}
+                    `}</style>
                     <div className="w-full h-[120px]">
                       {product.image_path ? (
                         <img
