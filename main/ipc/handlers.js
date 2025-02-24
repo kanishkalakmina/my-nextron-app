@@ -9,6 +9,7 @@ import {
     invoicedItemQueries,
     billTemplateQueries,
     stockQueries,
+    generalSettingsQueries,
 } from "../db/index.js";
 import {
     app
@@ -1195,6 +1196,39 @@ const reportHandlers = {
     }
 };
 
+// General 
+const generalSettingsHandlers = {
+    getGeneralSettings: async () => {
+        try {
+            const settings = generalSettingsQueries.getAll.all();
+            return {
+                success: true,
+                settings,
+            };
+        } catch (error) {
+            console.error("Error in getGeneralSettings:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    updateGeneralSettings: async (event, data) => {
+        try {
+            const existing = generalSettingsQueries.getByName.get(data.setting_name);
+            if (existing) {
+                generalSettingsQueries.update.run(data.setting_value, data.setting_name);
+            } else {
+                generalSettingsQueries.create.run(data.id, data.setting_name, data.setting_value);
+            }
+            return { success: true };
+        } catch (error) {
+            console.error("Error in updateGeneralSettings:", error);
+            return { success: false, error: error.message };
+        }
+    }
+};
+
 export {
     categoryHandlers,
     productHandlers,
@@ -1205,4 +1239,5 @@ export {
     roleHandlers,
     billTemplateHandlers,
     reportHandlers,
+    generalSettingsHandlers,
 };

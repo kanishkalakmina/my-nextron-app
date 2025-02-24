@@ -27,6 +27,7 @@ const CategoryPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
 
+
   const {
     loading,
     error,

@@ -333,6 +333,17 @@ declare global {
         success: boolean;
         error?: string;
       }>;
+
+      updateGeneralSettings: (data: any) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      getGeneralSettings: () => Promise<{
+        success: boolean;
+        settings?: any[];
+        error?: string;
+      }>;
     };
 
     getAllBillTemplates: () => Promise<{
@@ -356,6 +367,22 @@ declare global {
       }>;
       error?: string;
     }>;
+
+    // updateGeneralSettings: (data: {
+    //   id: string;
+    //   setting_name: string;
+    //   setting_value: string;
+    // }) => Promise<{ success: boolean; error?: string }>;
+
+    // getGeneralSettings: () => Promise<{
+    //   success: boolean;
+    //   settings?: Array<{
+    //     id: string;
+    //     setting_name: string;
+    //     setting_value: string;
+    //   }>;
+    //   error?: string;
+    // }>;
   }
 }
 
@@ -363,7 +390,11 @@ interface UseIPCOptions {
   onError?: (error: string) => void;
 }
 
-
+interface GeneralSetting {
+  id: string;
+  setting_name: string;
+  setting_value: string;
+}
 
 export function useIPC(options: UseIPCOptions = {}) {
   const [loading, setLoading] = useState(false);
@@ -938,6 +969,29 @@ export function useIPC(options: UseIPCOptions = {}) {
     }
   };
 
+  const updateGeneralSettings = async (data: any) => {
+    try {
+      return await window.electron.updateGeneralSettings(data);
+    } catch (error) {
+      console.error("Error in updateGeneralSettings:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const getGeneralSettings = async (): Promise<{
+    success: boolean;
+    settings?: GeneralSetting[];
+    error?: string;
+  }> => {
+    try {
+      const result = await window.electron.getGeneralSettings();
+      return result;
+    } catch (error) {
+      console.error("Error in getGeneralSettings:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
   return {
     loading,
     error,
@@ -985,5 +1039,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     //reports
     getSalesReport,
     validatePaymentStock,
+    updateGeneralSettings,
+    getGeneralSettings,
   };
 }

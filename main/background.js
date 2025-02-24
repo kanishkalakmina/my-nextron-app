@@ -20,6 +20,7 @@ import {
     roleHandlers,
     billTemplateHandlers,
     reportHandlers,
+    generalSettingsHandlers,
 } from "./ipc/handlers";
 
 const isProd = process.env.NODE_ENV === "production";
@@ -119,6 +120,10 @@ const registerIpcHandlers = () => {
 
     //reports
     ipcMain.handle("get-sales-report", reportHandlers.getSalesReport);
+
+    // General Settings
+    ipcMain.handle("update-general-settings", generalSettingsHandlers.updateGeneralSettings);
+    ipcMain.handle("get-general-settings", generalSettingsHandlers.getGeneralSettings);
 }
 
 (async () => {

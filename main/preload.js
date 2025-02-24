@@ -483,4 +483,28 @@ contextBridge.exposeInMainWorld("electron", {
             };
         }
     },
+
+    // General Settings
+    updateGeneralSettings: async (data) => {
+        try {
+            return await ipcRenderer.invoke("update-general-settings", data);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    getGeneralSettings: async () => {
+        try {
+            return await ipcRenderer.invoke("get-general-settings");
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    }, 
 });

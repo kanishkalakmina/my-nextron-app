@@ -15,6 +15,7 @@ import Layout from "../components/Layout";
 import { useRouter } from "next/router";
 import PaymentModal from "../components/PaymentModal";
 import toast from "react-hot-toast";
+import { useIPC } from "../hooks/useIPC";
 
 interface OrderItem {
   id: string;
@@ -56,7 +57,7 @@ const DashboardPage = () => {
   ]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [discount, setDiscount] = useState(0);
-  const [tax, setTax] = useState(0.5);
+  const [tax, setTax] = useState(0);
   
   const [activeCategory, setActiveCategory] = useState("all");
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
@@ -68,6 +69,8 @@ const DashboardPage = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDiscountPad, setShowDiscountPad] = useState(false);
   const [tempDiscount, setTempDiscount] = useState('');
+
+  const { getGeneralSettings } = useIPC();
 
   // Fetch categories and products when component mounts
   useEffect(() => {
@@ -142,6 +145,19 @@ const DashboardPage = () => {
 
     setFilteredProducts(filtered);
   }, [activeCategory, searchTerm, products]);
+
+  // Add useEffect to load tax rate
+  useEffect(() => {
+    const loadTaxRate = async () => {
+      const result = await getGeneralSettings();
+      if (result?.success && result.settings) {
+        const taxSetting = result.settings.find(s => s.setting_name === 'tax_rate');
+        setTax(taxSetting ? parseFloat(taxSetting.setting_value) : 0);
+      }
+    };
+    
+    loadTaxRate();
+  }, []);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);

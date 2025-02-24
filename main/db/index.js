@@ -181,6 +181,15 @@ try {
         updated_date DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (product_id) REFERENCES products(id)
     );
+
+    -- Create general-settings table if not exists
+    CREATE TABLE IF NOT EXISTS general_settings (
+      id TEXT PRIMARY KEY,
+      setting_name TEXT NOT NULL UNIQUE,
+      setting_value TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
     // Enable foreign key support
@@ -555,6 +564,22 @@ const stockQueries = {
     `),
 };
 
+// general settings CRUD
+const generalSettingsQueries = {
+    create: db.prepare(`
+        INSERT INTO general_settings (id, setting_name, setting_value)
+        VALUES (?, ?, ?)
+    `),
+    update: db.prepare(`
+        UPDATE general_settings 
+        SET setting_value = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE setting_name = ?
+    `),
+    getAll: db.prepare("SELECT * FROM general_settings"),
+    getByName: db.prepare("SELECT * FROM general_settings WHERE setting_name = ?"),
+};
+
 export {
     categoryQueries,
     productQueries,
@@ -566,4 +591,5 @@ export {
     invoicedItemQueries,
     billTemplateQueries,
     stockQueries,
+    generalSettingsQueries
 };
