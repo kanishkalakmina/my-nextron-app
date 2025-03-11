@@ -306,7 +306,11 @@ const ProductPage = () => {
           toast.success("Product deleted successfully");
           loadProducts();
         } else {
-          toast.error(result.error || "Failed to delete product");
+          if (result.error.includes("FOREIGN KEY constraint failed")) {
+            toast.error(`Cannot delete ${productToDelete.name} as there are stocks available`);
+          } else {
+            toast.error(result.error || "Failed to delete product");
+          }
         }
       } catch (error) {
         console.error("Error deleting product:", error);
