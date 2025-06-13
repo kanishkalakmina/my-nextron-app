@@ -491,8 +491,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 } catch (error) {
                   toast.error("Failed to process payment. Please try again.");
                 }
-                setAmountInCard(0);
-                setAmountReceivedCardCash(0);
+                setAmountInCard("");
+                setAmountReceivedCardCash("");
               }}
             >
               Complete Payment
@@ -519,7 +519,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             total={total}
             amountReceived={parseFloat(amount) || undefined}
             change={getChange()}
-            paymentMethod={paymentMethod}
+            paymentMethod={paymentMethod === 'cardcash' ? 'cash' : paymentMethod}
             billRefNo={createTimestampId()}
           />
         </div>
