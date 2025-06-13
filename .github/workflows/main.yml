@@ -27,34 +27,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run build -- --publish always
 
-      - name: Create dist directory
-        run: mkdir -p dist
-
-      - name: Move build files to dist
-        run: |
-          mv out/* dist/
-          mv builder-effective-config.yaml dist/
-          mv builder-debug.yml dist/
-          mv latest.yml dist/
-
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: dist/
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: 1.0.3
-          name: Release v1.0.3
-          draft: false
-          prerelease: false
-          files: |
-            dist/latest.yml
-            dist/*.exe
-            dist/*.blockmap
-            dist/builder-debug.yml
-            dist/builder-effective-config.yaml
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
