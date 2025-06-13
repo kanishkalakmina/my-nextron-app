@@ -27,7 +27,7 @@ autoUpdater.on('checking-for-update', () => {
 // autoUpdater.on('update-available', (info) => {
 //     console.log('Update available:', info)
 // })
-
+//
 autoUpdater.on('update-not-available', () => {
     console.log('No updates available')
 })
