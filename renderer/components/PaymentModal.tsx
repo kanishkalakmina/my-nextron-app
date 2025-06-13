@@ -40,6 +40,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [showCardCashModal, setShowCardCashModal] = useState(false);
   const [amountInCard, setAmountInCard] = useState(0);
   const [amountReceivedCardCash, setAmountReceivedCardCash] = useState(0);
+  const [activeCardCashField, setActiveCardCashField] = useState<'card' | 'received'>('received');
 
   const subtotal = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
@@ -399,7 +400,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <span className="font-bold">Rs. {total.toFixed(2)}</span>
             </div>
             <div className="mb-3 flex justify-between items-center">
-              <label htmlFor="amountInCard">Amount in Card:</label>
+              <label htmlFor="amountInCard" className={activeCardCashField === 'card' ? 'font-bold text-blue-600' : ''} onClick={() => setActiveCardCashField('card')}>Amount in Card:</label>
               <div className="flex items-center w-32">
                 <span className="mr-1">Rs.</span>
                 <input
@@ -408,22 +409,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   min={0}
                   max={total}
                   value={amountInCard}
-                  onChange={e => {
-                    let val = Number(e.target.value);
-                    if (val < 0) val = 0;
-                    if (val > total) val = total;
-                    setAmountInCard(val);
-                  }}
-                  className="border rounded px-2 py-1 w-full text-right"
+                  onFocus={() => setActiveCardCashField('card')}
+                  className={`border rounded px-2 py-1 w-full text-right ${activeCardCashField === 'card' ? 'ring-2 ring-blue-400' : ''}`}
+                  readOnly
                 />
               </div>
             </div>
             <div className="mb-3 flex justify-between">
               <span>Amount in Cash:</span>
-              <span className="font-bold">Rs. {(total - amountInCard).toFixed(2)}</span>
+              <span>Rs. {(total - amountInCard).toFixed(2)}</span>
             </div>
+
             <div className="mb-3 flex justify-between items-center">
-              <label htmlFor="amountReceivedCardCash">Amount Received:</label>
+              <label htmlFor="amountReceivedCardCash" className="text-black" onClick={() => setActiveCardCashField('received')}>Amount Received:</label>
               <div className="flex items-center w-32">
                 <span className="mr-1">Rs.</span>
                 <input
@@ -431,19 +429,71 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   type="number"
                   min={0}
                   value={amountReceivedCardCash}
-                  onChange={e => {
-                    let val = Number(e.target.value);
-                    if (val < 0) val = 0;
-                    setAmountReceivedCardCash(val);
-                  }}
-                  className="border rounded px-2 py-1 w-full text-right"
+                  onFocus={() => setActiveCardCashField('received')}
+                  className={`border rounded px-2 py-1 w-full text-right text-black ${activeCardCashField === 'received' ? 'ring-2 ring-blue-400' : ''}`}
+                  readOnly
                 />
               </div>
             </div>
-            <div className="mb-5 flex justify-between">
+            <div className="mb-3 flex justify-between">
               <span>Change:</span>
-              <span className="font-bold">Rs. {Math.max(0, amountReceivedCardCash - (total - amountInCard)).toFixed(2)}</span>
+              <span>Rs. {Math.max(0, amountReceivedCardCash - (total - amountInCard)).toFixed(2)}</span>
             </div>
+            {/* Unified number pad for Amount in Card / Amount Received */}
+            <div className="mb-3 grid grid-cols-3 gap-2">
+              {[7, 8, 9, 4, 5, 6, 1, 2, 3, "back", 0, "."].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => {
+                    if (activeCardCashField === 'card') {
+                      if (num === "back") {
+                        setAmountInCard((prev) => {
+                          const str = String(prev);
+                          return Number(str.length > 1 ? str.slice(0, -1) : 0);
+                        });
+                      } else if (num === ".") {
+                        if (!String(amountInCard).includes(".")) {
+                          setAmountInCard((prev) => Number(String(prev) + "."));
+                        }
+                      } else {
+                        setAmountInCard((prev) => {
+                          const next = String(prev) === "0" ? String(num) : String(prev) + String(num);
+                          let val = Number(next);
+                          if (val < 0) val = 0;
+                          if (val > total) val = total;
+                          return val;
+                        });
+                      }
+                    } else {
+                      if (num === "back") {
+                        setAmountReceivedCardCash((prev) => Number(String(prev).slice(0, -1)) || 0);
+                      } else if (num === ".") {
+                        if (!String(amountReceivedCardCash).includes(".")) {
+                          setAmountReceivedCardCash((prev) => Number(String(prev) + "."));
+                        }
+                      } else {
+                        setAmountReceivedCardCash((prev) => {
+                          const next = String(prev) === "0" ? String(num) : String(prev) + String(num);
+                          return Number(next);
+                        });
+                      }
+                    }
+                  }}
+                  className={`$ {
+                    num === "back"
+                      ? "bg-red-50 hover:bg-red-100 flex items-center justify-center"
+                      : "bg-white hover:bg-gray-50"
+                  } border border-gray-200 rounded p-3 text-lg`}
+                >
+                  {num === "back" ? (
+                    <BackspaceIcon className="h-6 w-6 text-red-500" />
+                  ) : (
+                    num
+                  )}
+                </button>
+              ))}
+            </div>
+
             <button
               className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
               onClick={async () => {
