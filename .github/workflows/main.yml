@@ -1,3 +1,11 @@
+name: Release on Production Push
+
+on:
+  push:
+    branches:
+      - production
+  workflow_dispatch:
+
 jobs:
   build-and-release:
     runs-on: windows-latest
