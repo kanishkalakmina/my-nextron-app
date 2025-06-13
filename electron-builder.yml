@@ -1,3 +1,5 @@
 provider: github
 owner: kanishkalakmina
 repo : my-nextron-app
+env:
+  GH_TOKEN: ${{ secrets.GH_TOKEN }}
