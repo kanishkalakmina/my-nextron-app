@@ -319,9 +319,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
             {paymentMethod === "cash" && (
               <>
-                <div className="flex justify-between mb-2">
-                  <span>Amount Received:</span>
-                  <span>Rs. {parseFloat(amount || "0").toFixed(2)}</span>
+                <div className="mb-3 flex justify-between items-center">
+                  <label htmlFor="amountReceivedCash" className="font-bold text-blue-600">Amount Received:</label>
+                  <div className="flex items-center w-32">
+                    <span className="mr-1">Rs.</span>
+                    <input
+                      id="amountReceivedCash"
+                      type="number"
+                      min={0}
+                      value={amount}
+                      onChange={e => setAmount(e.target.value)}
+                      className="w-full px-2 py-1 border-2 rounded focus:outline-none focus:border-orange-400 text-right"
+                      style={{ boxShadow: '0 0 0 2px #e0e7ff' }}
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-between font-bold">
                   <span>Change:</span>
