@@ -1,0 +1,45 @@
+name: Release on Production Push
+
+on:
+  push:
+    branches:
+      - production
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Electron app
+        run: npm run build
+
+      - name: Read version from package.json
+        id: get_version
+        run: echo "RELEASE_VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.RELEASE_VERSION }}
+          name: Release v${{ env.RELEASE_VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/latest.yml
+            dist/*.exe
+            dist/*.blockmap
+            dist/builder-debug.yml
+            dist/builder-effective-config.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
