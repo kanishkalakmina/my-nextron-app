@@ -421,7 +421,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
 
             <div className="mb-3 flex justify-between items-center">
-              <label htmlFor="amountReceivedCardCash" className="text-black" onClick={() => setActiveCardCashField('received')}>Amount Received:</label>
+              <label htmlFor="amountReceivedCardCash" className={activeCardCashField === 'received' ? 'font-bold text-blue-600' : ''} onClick={() => setActiveCardCashField('received')}>Amount Received:</label>
               <div className="flex items-center w-32">
                 <span className="mr-1">Rs.</span>
                 <input
@@ -430,7 +430,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   min={0}
                   value={amountReceivedCardCash}
                   onFocus={() => setActiveCardCashField('received')}
-                  className={`border rounded px-2 py-1 w-full text-right text-black ${activeCardCashField === 'received' ? 'ring-2 ring-blue-400' : ''}`}
+                  className={`border rounded px-2 py-1 w-full text-right ${activeCardCashField === 'received' ? 'ring-2 ring-blue-400' : ''}`}
                   readOnly
                 />
               </div>
