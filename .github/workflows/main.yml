@@ -1,10 +1,3 @@
-name: Release on Production Push
-
-on:
-  push:
-    branches:
-      - production
-
 jobs:
   build-and-release:
     runs-on: windows-latest
@@ -22,6 +15,8 @@ jobs:
         run: npm install
 
       - name: Build Electron app
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run build
 
       - name: Read version from package.json
