@@ -204,6 +204,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       printBill();
       onPaymentComplete();
       onClose();
+      setAmountInCard("");
+      setAmountReceivedCardCash("");
     } catch (error) {
       console.error("Payment error:", error);
       toast.error("Failed to process payment. Please try again.");
@@ -222,7 +224,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Payment</h2>
           <button
-            onClick={ (e)=> {onClose(); setAmount("")} }
+            onClick={() => {
+              onClose();
+              setAmount("");
+              setAmountInCard("");
+              setAmountReceivedCardCash("");
+            }}
             className="text-gray-500 hover:text-gray-700"
           >
             <XMarkIcon className="h-6 w-6" />
@@ -500,6 +507,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   printBill();
                   onPaymentComplete();
                   onClose();
+                  setAmountInCard("");
+                  setAmountReceivedCardCash("");
                 } catch (error) {
                   toast.error("Failed to process payment. Please try again.");
                 }
