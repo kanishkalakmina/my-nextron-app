@@ -1,38 +1,45 @@
-name: Build/release
+name: Release on Production Push
 
 on:
   push:
-    tags:
-      - "v*" # Push events on tags that match 'v*.*.*'
+    branches:
+      - production
 
 jobs:
-  release:
+  build-and-release:
     runs-on: windows-latest
 
-    strategy:
-      matrix:
-        os: [windows-latest]
-
     steps:
-      - name: Check out Git repository
-        uses: actions/checkout@v1
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Install Node.js, NPM and Yarn
-        uses: actions/setup-node@v1
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
 
       - name: Build Electron app
-        run: |
-          npm install
-          npm run build
-      - name: Build/release Electron app
-        uses: samuelmeuli/action-electron-builder@v1
-        with:
-          # GitHub token, automatically provided to the action
-          # (No need to define this secret in the repo settings)
-          github_token: ${{ secrets.github_token }}
+        run: npm run build
 
-          # If the commit is tagged with a version (e.g. "v1.0.0"),
-          # release the app after building
-          release: ${{ startsWith(github.ref, 'refs/tags/v') }}
+      - name: Read version from package.json
+        id: get_version
+        run: echo "RELEASE_VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_ENV
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ env.RELEASE_VERSION }}
+          name: Release v${{ env.RELEASE_VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/latest.yml
+            dist/*.exe
+            dist/*.blockmap
+            dist/builder-debug.yml
+            dist/builder-effective-config.yaml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
