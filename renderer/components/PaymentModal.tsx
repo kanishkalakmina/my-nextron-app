@@ -281,6 +281,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               }`}
               onClick={() => {
                 setPaymentMethod("cardcash");
+                setActiveCardCashField('card');
               }}
             >
               <div className="flex items-center gap-1">
