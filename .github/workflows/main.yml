@@ -29,6 +29,7 @@ jobs:
 
       - name: Create dist directory
         run: mkdir -p dist
+
       - name: Move build files to dist
         run: |
           mv out/* dist/
@@ -37,11 +38,11 @@ jobs:
           mv latest.yml dist/
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: dist/
-          
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
