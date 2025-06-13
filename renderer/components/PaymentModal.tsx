@@ -399,6 +399,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <span>Total Amount:</span>
               <span className="font-bold">Rs. {total.toFixed(2)}</span>
             </div>
+            <div className="mb-3 flex justify-between">
+              <span>Tax:</span>
+              <span>Rs. {tax.toFixed(2)}</span>
+            </div>
             <div className="mb-3 flex justify-between items-center">
               <label htmlFor="amountInCard" className={activeCardCashField === 'card' ? 'font-bold text-blue-600' : ''} onClick={() => setActiveCardCashField('card')}>Amount in Card:</label>
               <div className="flex items-center w-32">
