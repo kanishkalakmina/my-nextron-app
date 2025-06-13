@@ -37,7 +37,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 }) => {
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cash" | "cardcash">("cash");
-  const [showCardCashModal, setShowCardCashModal] = useState(false);
+
   const [amountInCard, setAmountInCard] = useState(0);
   const [amountReceivedCardCash, setAmountReceivedCardCash] = useState(0);
   const [activeCardCashField, setActiveCardCashField] = useState<'card' | 'received'>('received');
@@ -281,7 +281,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               }`}
               onClick={() => {
                 setPaymentMethod("cardcash");
-                setShowCardCashModal(true);
               }}
             >
               <div className="flex items-center gap-1">
@@ -354,59 +353,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           )}
         </div>
 
-        <button
-          onClick={handlePayment}
-          className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600"
-        >
-          Complete Payment
-        </button>
-      </div>
+        {/* Card & Cash UI (now inline) */}
+        {paymentMethod === "cardcash" ? (
+          <>
 
-      {/* Hidden bill for printing */}
-      <div className="hidden">
-        <div ref={hiddenBillRef}>
-          <Bill
-            orderItems={orderItems}
-            subtotal={subtotal}
-            discount={discount}
-            tax={tax}
-            total={total}
-            amountReceived={parseFloat(amount) || undefined}
-            change={getChange()}
-            paymentMethod={paymentMethod}
-            billRefNo={createTimestampId()}
-          />
-        </div>
-      </div>
-
-      {/* Card & Cash Modal */}
-      {showCardCashModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg w-[400px] p-6 relative">
-            <button
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-              onClick={() => {
-                setShowCardCashModal(false);
-                setPaymentMethod("cash");
-                setAmountInCard(0);
-                setAmountReceivedCardCash(0);
-              }}
-            >
-              <XMarkIcon className="h-5 w-5" />
-            </button>
-            <h3 className="text-lg font-bold mb-4">Card & Cash Payment</h3>
-            <div className="mb-3 flex justify-between">
-              <span>Sub Total:</span>
-              <span>Rs. {subtotal.toFixed(2)}</span>
-            </div>
-            <div className="mb-3 flex justify-between">
-              <span>Tax:</span>
-              <span>Rs. {tax.toFixed(2)}</span>
-            </div>
-            <div className="mb-3 flex justify-between">
-              <span>Total Amount:</span>
-              <span className="font-bold">Rs. {total.toFixed(2)}</span>
-            </div>
             <div className="mb-3 flex justify-between items-center">
               <label htmlFor="amountInCard" className={activeCardCashField === 'card' ? 'font-bold text-blue-600' : ''} onClick={() => setActiveCardCashField('card')}>Amount in Card:</label>
               <div className="flex items-center w-32">
@@ -427,7 +377,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               <span>Amount in Cash:</span>
               <span>Rs. {(total - amountInCard).toFixed(2)}</span>
             </div>
-
             <div className="mb-3 flex justify-between items-center">
               <label htmlFor="amountReceivedCardCash" className={activeCardCashField === 'received' ? 'font-bold text-blue-600' : ''} onClick={() => setActiveCardCashField('received')}>Amount Received:</label>
               <div className="flex items-center w-32">
@@ -501,7 +450,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 </button>
               ))}
             </div>
-
             <button
               className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
               onClick={async () => {
@@ -539,16 +487,41 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 } catch (error) {
                   toast.error("Failed to process payment. Please try again.");
                 }
-                setShowCardCashModal(false);
                 setAmountInCard(0);
                 setAmountReceivedCardCash(0);
               }}
             >
               Complete Payment
             </button>
-          </div>
+          </>
+        ) : (
+          <button
+            onClick={handlePayment}
+            className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600"
+          >
+            Complete Payment
+          </button>
+        )}
+      </div>
+
+      {/* Hidden bill for printing */}
+      <div className="hidden">
+        <div ref={hiddenBillRef}>
+          <Bill
+            orderItems={orderItems}
+            subtotal={subtotal}
+            discount={discount}
+            tax={tax}
+            total={total}
+            amountReceived={parseFloat(amount) || undefined}
+            change={getChange()}
+            paymentMethod={paymentMethod}
+            billRefNo={createTimestampId()}
+          />
         </div>
-      )}
+      </div>
+
+
     </div>
   );
 };
