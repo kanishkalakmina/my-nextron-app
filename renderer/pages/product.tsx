@@ -6,6 +6,10 @@ import {
   MagnifyingGlassIcon,
   PencilSquareIcon,
   TrashIcon,
+  XMarkIcon,
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@heroicons/react/24/outline";
 import Layout from "../components/Layout";
 import { useIPC } from "../hooks/useIPC";
@@ -20,6 +24,8 @@ interface Product {
   category_id: string;
   category_name: string;
   image_path?: string;
+  stock: number;
+  isNA: boolean;
 }
 
 interface Category {
@@ -37,6 +43,20 @@ interface ProductForm {
   category_id: string;
   image: File | null;
   existingImagePath: string | null;
+  stock: number;
+  isNA: boolean;
+}
+
+interface StockUpdateForm {
+  product_id: string;
+  stock: number;
+}
+
+interface LowStockNotification {
+  id: string;
+  productName: string;
+  stock: number;
+  timestamp: Date;
 }
 
 const ProductPage = () => {
@@ -54,7 +74,20 @@ const ProductPage = () => {
     category_id: "",
     image: null,
     existingImagePath: null,
+    stock: 0,
+    isNA: false,
   });
+  const [isStockModalOpen, setIsStockModalOpen] = useState(false);
+  const [stockForm, setStockForm] = useState<StockUpdateForm>({
+    product_id: "",
+    stock: 0,
+  });
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [lowStockNotifications, setLowStockNotifications] = useState<LowStockNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     loadProducts();
@@ -67,6 +100,8 @@ const ProductPage = () => {
       if (result.success) {
         console.log("Products loaded:", result.products); // Debug log
         setProducts(result.products);
+        // Check for low stock whenever products are loaded
+        checkLowStock(result.products);
       } else {
         toast.error("Failed to load products");
       }
@@ -100,6 +135,8 @@ const ProductPage = () => {
         category_id: product.category_id || "",
         image: null,
         existingImagePath: product.image_path,
+        stock: product.stock,
+        isNA: product.isNA || false,
       });
     } else {
       setEditingProduct(null);
@@ -110,6 +147,8 @@ const ProductPage = () => {
         category_id: "",
         image: null,
         existingImagePath: null,
+        stock: 0,
+        isNA: false,
       });
     }
     setIsModalOpen(true);
@@ -125,12 +164,25 @@ const ProductPage = () => {
       category_id: "",
       image: null,
       existingImagePath: null,
+      stock: 0,
+      isNA: false,
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
+      // Check if a product with the same name already exists
+      const existingProduct = products.find(
+        (p) => p.name.toLowerCase() === productForm.name.toLowerCase() && p.id !== editingProduct?.id
+      );
+
+      if (existingProduct) {
+        toast.error("A product with this name already exists!");
+        return;
+      }
+
       let imagePath = productForm.existingImagePath;
 
       if (productForm.image) {
@@ -167,6 +219,8 @@ const ProductPage = () => {
         price: productForm.price,
         category_id: productForm.category_id,
         image_path: imagePath,
+        stock: productForm.stock,
+        isNA: productForm.isNA,
       };
 
       console.log("Submitting product data:", {
@@ -252,7 +306,11 @@ const ProductPage = () => {
           toast.success("Product deleted successfully");
           loadProducts();
         } else {
-          toast.error(result.error || "Failed to delete product");
+          if (result.error.includes("FOREIGN KEY constraint failed")) {
+            toast.error(`Cannot delete ${productToDelete.name} as there are stocks available`);
+          } else {
+            toast.error(result.error || "Failed to delete product");
+          }
         }
       } catch (error) {
         console.error("Error deleting product:", error);
@@ -297,8 +355,110 @@ const ProductPage = () => {
     return imagePath;
   };
 
+  const handleOpenStockModal = () => {
+    setIsStockModalOpen(true);
+    setFilteredProducts(products.filter(p => !p.isNA));
+  };
+
+  const handleCloseStockModal = () => {
+    setIsStockModalOpen(false);
+    setStockForm({
+      product_id: "",
+      stock: 0,
+    });
+    setSearchQuery("");
+  };
+
+  const handleSearchChange = (query: string) => {
+    setSearchQuery(query);
+    const filtered = products.filter(product => 
+      !product.isNA && product.name.toLowerCase().includes(query.toLowerCase())
+    );
+    setFilteredProducts(filtered);
+  };
+
+  const checkLowStock = (productList: Product[]) => {
+    const notifications: LowStockNotification[] = productList
+      .filter(product => !product.isNA && product.stock <= 5)
+      .map(product => ({
+        id: product.id,
+        productName: product.name,
+        stock: product.stock,
+        timestamp: new Date()
+      }));
+
+    setLowStockNotifications(notifications);
+    
+    // Remove the automatic toast notifications
+    // notifications.forEach(notification => {
+    //   toast.error(
+    //     `Low stock alert: ${notification.productName} has only ${notification.stock} items remaining`,
+    //     { duration: 5000 }
+    //   );
+    // });
+  };
+
+  const handleStockSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const selectedProduct = products.find(p => p.id === stockForm.product_id);
+      if (!selectedProduct) {
+        toast.error("Please select a product");
+        return;
+      }
+
+      // Validate stock quantity
+      if (stockForm.stock < 0) {
+        toast.error("Stock quantity cannot be negative");
+        return;
+      }
+
+      // Get current stock information
+      const currentStock = selectedProduct.stock || 0;
+      
+      // Show confirmation if reducing stock
+      if (stockForm.stock === 0) {
+        toast.error("Stock quantity cannot be 0");
+        return;
+      }
+
+      const newStock = currentStock + stockForm.stock;
+      const result = await window.electron.updateProduct({
+        ...selectedProduct,
+        stock: newStock,
+      });
+
+
+      if (result.success) {
+        toast.success(`Stock updated successfully. New stock: ${stockForm.stock}`);
+        
+        loadProducts();
+        handleCloseStockModal();
+      } else {
+        toast.error(result.error || "Failed to update stock");
+      }
+    } catch (error) {
+      console.error("Error updating stock:", error);
+      toast.error("Failed to update stock");
+    }
+  };
+
+  const handleDismissNotification = (id: string) => {
+    setLowStockNotifications(prev => prev.filter(notification => notification.id !== id));
+  };
+
+  const getCurrentPageItems = () => {
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    return products.slice(indexOfFirstItem, indexOfLastItem);
+  };
+
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
+
   return (
-    <Layout>
+    <Layout notifications={lowStockNotifications} onDismissNotification={handleDismissNotification}>
       <Head>
         <title>Products - POS System</title>
       </Head>
@@ -307,14 +467,26 @@ const ProductPage = () => {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-semibold text-gray-900">Products</h1>
-          <button
-            type="button"
-            onClick={() => handleOpenModal()}
-            className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-          >
-            <PlusIcon className="h-5 w-5 mr-2" />
-            Add Product
-          </button>
+          <div className="flex items-center space-x-4">
+            <button
+              type="button"
+              onClick={() => handleOpenModal()}
+              className="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            >
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Add Product
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenStockModal}
+              className="inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              Update Stock
+            </button>
+          </div>
         </div>
 
         {/* Search */}
@@ -375,6 +547,12 @@ const ProductPage = () => {
                       </th>
                       <th
                         scope="col"
+                        className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900"
+                      >
+                        Stock
+                      </th>
+                      <th
+                        scope="col"
                         className="relative py-3.5 pl-3 pr-4 sm:pr-6"
                       >
                         <span className="sr-only">Actions</span>
@@ -382,7 +560,7 @@ const ProductPage = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {products.map((product) => (
+                    {getCurrentPageItems().map((product) => (
                       <tr key={product.id}>
                         <td className="whitespace-nowrap py-2 pl-4 pr-3 sm:pl-6">
                           <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
@@ -418,10 +596,13 @@ const ProductPage = () => {
                           {product.description || "-"}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                          ${product.price.toFixed(2)}
+                          Rs {product.price.toFixed(2)}
                         </td>
                         <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
                           {product.category_name || "-"}
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                          {product.isNA ? "N/A" : product.stock}
                         </td>
                         <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                           <button
@@ -454,6 +635,68 @@ const ProductPage = () => {
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pagination controls matching category page style */}
+        <div className="flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6">
+          <div className="flex flex-1 justify-between sm:hidden">
+            <button
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="relative inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === Math.ceil(products.length / itemsPerPage)}
+              className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Next
+            </button>
+          </div>
+          <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm text-gray-700">
+                Showing <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
+                <span className="font-medium">{Math.min(currentPage * itemsPerPage, products.length)}</span> of{' '}
+                <span className="font-medium">{products.length}</span> results
+              </p>
+            </div>
+            <div>
+              <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                >
+                  <span className="sr-only">Previous</span>
+                  <ChevronLeftIcon className="h-5 w-5" aria-hidden="true" />
+                </button>
+                {Array.from({ length: Math.ceil(products.length / itemsPerPage) }, (_, i) => i + 1).map((page) => (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                      currentPage === page
+                        ? 'z-10 bg-indigo-600 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'
+                        : 'text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0'
+                    }`}
+                  >
+                    {page}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === Math.ceil(products.length / itemsPerPage)}
+                  className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:z-20 focus:outline-offset-0"
+                >
+                  <span className="sr-only">Next</span>
+                  <ChevronRightIcon className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </nav>
             </div>
           </div>
         </div>
@@ -567,17 +810,14 @@ const ProductPage = () => {
                         htmlFor="price"
                         className="block text-sm font-medium leading-6 text-gray-900"
                       >
-                        Price
+                        Price (Rs)
                       </label>
                       <div className="mt-2 relative">
-                        <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                          <span className="text-gray-500 sm:text-sm">$</span>
-                        </div>
                         <input
                           type="number"
                           id="price"
                           required
-                          step="0.01"
+                          step="1"
                           min="0"
                           value={productForm.price}
                           onChange={(e) =>
@@ -586,8 +826,8 @@ const ProductPage = () => {
                               price: parseFloat(e.target.value),
                             })
                           }
-                          className="block w-full rounded-lg border-0 py-2 pl-7 pr-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6"
-                          placeholder="0.00"
+                          className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6"
+                          placeholder="0"
                         />
                       </div>
                     </div>
@@ -622,6 +862,60 @@ const ProductPage = () => {
                         </select>
                       </div>
                     </div>
+
+                    {/* Stock field */}
+                    {!editingProduct && (
+                      <div>
+                        <label
+                          htmlFor="stock"
+                          className="block text-sm font-medium leading-6 text-gray-900"
+                        >
+                          Stock
+                        </label>
+                        <div className="mt-2">
+                          <input
+                            type="number"
+                            id="stock"
+                            min="0"
+                            value={productForm.stock}
+                            onChange={(e) =>
+                              setProductForm({
+                                ...productForm,
+                                stock: parseInt(e.target.value) || 0,
+                              })
+                            }
+                            disabled={productForm.isNA}
+                            className="block w-full rounded-lg border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 hover:ring-gray-400 transition-shadow duration-200 sm:text-sm sm:leading-6 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            placeholder="Enter stock quantity"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* N/A checkbox */}
+                    {!editingProduct && (
+                      <div className="flex items-center mt-8">
+                        <input
+                          type="checkbox"
+                          id="isNA"
+                          checked={productForm.isNA}
+                          onChange={(e) =>
+                            setProductForm({
+                              ...productForm,
+                              isNA: e.target.checked,
+                              stock: e.target.checked ? 0 : productForm.stock,
+                            })
+                          }
+                          className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
+                        />
+                        <label
+                          htmlFor="isNA"
+                          className="ml-2 block text-sm font-medium leading-6 text-gray-900"
+                        >
+                          N/A
+                        </label>
+                      </div>
+                    )}
 
                     {/* Image upload field */}
                     <div className="col-span-2">
@@ -729,6 +1023,129 @@ const ProductPage = () => {
           </div>
         </div>
       )}
+
+      {/* Stock Update Modal */}
+      {isStockModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            {/* Modal backdrop */}
+            <div
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 backdrop-blur-sm transition-opacity"
+              onClick={handleCloseStockModal}
+            ></div>
+
+            {/* Modal panel */}
+            <div className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+              {/* Close button */}
+              <div className="absolute right-0 top-0 pr-4 pt-4">
+                <button
+                  type="button"
+                  className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
+                  onClick={handleCloseStockModal}
+                >
+                  <span className="sr-only">Close</span>
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Modal content */}
+              <div className="sm:flex sm:items-start">
+                <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
+                  <h3 className="text-lg font-semibold leading-6 text-gray-900">
+                    Update Stock
+                  </h3>
+                  <form onSubmit={handleStockSubmit} className="mt-4 space-y-6">
+                    {/* Product Search */}
+                    <div>
+                      <label htmlFor="product" className="block text-sm font-medium text-gray-700 mb-2">
+                        Select Product
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => handleSearchChange(e.target.value)}
+                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3"
+                          placeholder="Search product..."
+                        />
+                        {searchQuery && filteredProducts.length > 0 && (
+                          <div className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                            {filteredProducts.map((product) => (
+                              <div
+                                key={product.id}
+                                className={`relative cursor-pointer select-none py-2 pl-3 pr-9 hover:bg-indigo-50 ${
+                                  stockForm.product_id === product.id ? 'bg-indigo-50' : 'text-gray-900'
+                                }`}
+                                onClick={() => {
+                                  setStockForm(prev => ({ ...prev, product_id: product.id }));
+                                  setSearchQuery(product.name);
+                                  setFilteredProducts([]);
+                                }}
+                              >
+                                {product.name}
+                                {stockForm.product_id === product.id && (
+                                  <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-indigo-600">
+                                    <CheckIcon className="h-5 w-5" />
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Current Stock */}
+                    {stockForm.product_id && (
+                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-700">Current Stock:</span>
+                          <span className="text-lg font-semibold text-gray-900">
+                            {products.find(p => p.id === stockForm.product_id)?.stock || 0}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Stock Input */}
+                    <div>
+                      <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-2">
+                        Stock to Add
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={stockForm.stock}
+                        onChange={(e) => setStockForm(prev => ({ ...prev, stock: parseInt(e.target.value) || 0 }))}
+                        className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3"
+                        placeholder="Enter stock quantity to add"
+                      />
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="mt-6 flex justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={handleCloseStockModal}
+                        className="inline-flex justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="inline-flex justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                      >
+                        Update Stock
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}

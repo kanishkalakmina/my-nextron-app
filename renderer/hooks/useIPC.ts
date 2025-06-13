@@ -62,10 +62,12 @@ declare global {
         description?: string;
         price: number;
         category_id?: string;
+        stock: number;
       }) => Promise<{ success: boolean; error?: string }>;
       deleteProduct: (
         id: string
       ) => Promise<{ success: boolean; error?: string }>;
+
       searchProducts: (
         searchTerm: string
       ) => Promise<{ success: boolean; products?: any[]; error?: string }>;
@@ -177,6 +179,7 @@ declare global {
         change_amount: number;
         status: string;
         created_at: string;
+        cashier: string;
       }) => Promise<{ success: boolean; error?: string }>;
 
       getAllPayments: () => Promise<{
@@ -195,6 +198,7 @@ declare global {
           change_amount: number;
           status: string;
           created_at: string;
+          cashier: string;
         }>;
         error?: string;
       }>;
@@ -318,6 +322,28 @@ declare global {
         }>;
         error?: string;
       }>;
+
+      getSalesReport: (dateRange: { startDate: string; endDate: string }) => Promise<{
+        success: boolean;
+        report?: any[];
+        error?: string;
+      }>;
+
+      validatePaymentStock: (orderItems: any[]) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      updateGeneralSettings: (data: any) => Promise<{
+        success: boolean;
+        error?: string;
+      }>;
+
+      getGeneralSettings: () => Promise<{
+        success: boolean;
+        settings?: any[];
+        error?: string;
+      }>;
     };
 
     getAllBillTemplates: () => Promise<{
@@ -341,11 +367,33 @@ declare global {
       }>;
       error?: string;
     }>;
+
+    // updateGeneralSettings: (data: {
+    //   id: string;
+    //   setting_name: string;
+    //   setting_value: string;
+    // }) => Promise<{ success: boolean; error?: string }>;
+
+    // getGeneralSettings: () => Promise<{
+    //   success: boolean;
+    //   settings?: Array<{
+    //     id: string;
+    //     setting_name: string;
+    //     setting_value: string;
+    //   }>;
+    //   error?: string;
+    // }>;
   }
 }
 
 interface UseIPCOptions {
   onError?: (error: string) => void;
+}
+
+interface GeneralSetting {
+  id: string;
+  setting_name: string;
+  setting_value: string;
 }
 
 export function useIPC(options: UseIPCOptions = {}) {
@@ -491,6 +539,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     description?: string;
     price: number;
     category_id?: string;
+    stock: number;
   }) => {
     setLoading(true);
     try {
@@ -794,6 +843,7 @@ export function useIPC(options: UseIPCOptions = {}) {
     change_amount: number;
     status: string;
     created_at: string;
+    cashier: string;
   }) => {
     setLoading(true);
     try {
@@ -898,6 +948,49 @@ export function useIPC(options: UseIPCOptions = {}) {
       };
     }
   };
+  
+  const getSalesReport = async (dateRange: { startDate: string; endDate: string }) => {
+    try {
+      return await window.electron.getSalesReport(dateRange);
+    } catch (error) {
+      console.error("Error in getSalesReport:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to get sales report",
+      };
+    }
+  };
+
+  const validatePaymentStock = async (orderItems: any[]) => {
+    try {
+      return await window.electron.validatePaymentStock(orderItems);
+    } catch (error) {
+      console.error("Error in validatePaymentStock:", error);
+    }
+  };
+
+  const updateGeneralSettings = async (data: any) => {
+    try {
+      return await window.electron.updateGeneralSettings(data);
+    } catch (error) {
+      console.error("Error in updateGeneralSettings:", error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const getGeneralSettings = async (): Promise<{
+    success: boolean;
+    settings?: GeneralSetting[];
+    error?: string;
+  }> => {
+    try {
+      const result = await window.electron.getGeneralSettings();
+      return result;
+    } catch (error) {
+      console.error("Error in getGeneralSettings:", error);
+      return { success: false, error: error.message };
+    }
+  };
 
   return {
     loading,
@@ -942,5 +1035,11 @@ export function useIPC(options: UseIPCOptions = {}) {
     getAllBillTemplates,
     updateBillTemplate,
     uploadImage,
+
+    //reports
+    getSalesReport,
+    validatePaymentStock,
+    updateGeneralSettings,
+    getGeneralSettings,
   };
 }

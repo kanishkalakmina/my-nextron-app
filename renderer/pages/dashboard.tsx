@@ -9,11 +9,13 @@ import {
   XMarkIcon,
   PlusIcon,
   MinusIcon,
+  BackspaceIcon,
 } from "@heroicons/react/24/outline";
 import Layout from "../components/Layout";
 import { useRouter } from "next/router";
 import PaymentModal from "../components/PaymentModal";
 import toast from "react-hot-toast";
+import { useIPC } from "../hooks/useIPC";
 
 interface OrderItem {
   id: string;
@@ -35,7 +37,17 @@ interface Product {
   description?: string;
   category_id?: string;
   image_path?: string;
+  stock: number;
+  isNA: boolean;
 }
+
+const lowStockAnimation = `
+  @keyframes borderBlink {
+    0% { border-color: #FEE2E2; }
+    50% { border-color:rgb(205, 111, 111); }
+    100% { border-color: #FEE2E2; }
+  }
+`;
 
 const DashboardPage = () => {
   const router = useRouter();
@@ -44,7 +56,9 @@ const DashboardPage = () => {
     { id: "all", name: "All" },
   ]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
-  const [discountValue, setDiscountValue] = useState("0");
+  const [discount, setDiscount] = useState(0);
+  const [tax, setTax] = useState(0);
+  
   const [activeCategory, setActiveCategory] = useState("all");
   const [isHoldModalOpen, setIsHoldModalOpen] = useState(false);
   const [holdReference, setHoldReference] = useState("");
@@ -52,7 +66,11 @@ const DashboardPage = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showDiscountPad, setShowDiscountPad] = useState(false);
+  const [tempDiscount, setTempDiscount] = useState('');
+
+  const { getGeneralSettings } = useIPC();
 
   // Fetch categories and products when component mounts
   useEffect(() => {
@@ -128,6 +146,19 @@ const DashboardPage = () => {
     setFilteredProducts(filtered);
   }, [activeCategory, searchTerm, products]);
 
+  // Add useEffect to load tax rate
+  useEffect(() => {
+    const loadTaxRate = async () => {
+      const result = await getGeneralSettings();
+      if (result?.success && result.settings) {
+        const taxSetting = result.settings.find(s => s.setting_name === 'tax_rate');
+        setTax(taxSetting ? parseFloat(taxSetting.setting_value) : 0);
+      }
+    };
+    
+    loadTaxRate();
+  }, []);
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
@@ -169,7 +200,7 @@ const DashboardPage = () => {
   const handlePaymentComplete = async () => {
     // Clear the order after successful payment
     setOrderItems([]);
-    setDiscountValue("0");
+    setDiscount(0);
     toast.success("Payment completed successfully!");
   };
 
@@ -223,7 +254,7 @@ const DashboardPage = () => {
       reference: holdReference,
       items: orderItems,
       total_items: orderItems.reduce((sum, item) => sum + item.quantity, 0),
-      total_amount: total,
+      total_amount: subtotal,
     };
 
     // If this is a recalled order, update it instead of creating new
@@ -265,23 +296,24 @@ const DashboardPage = () => {
 
     // Clear cart items and reset state
     setOrderItems([]);
-    setDiscountValue("0");
     setRecalledOrderId(null);
     setHoldReference("");
+    setDiscount(0);
   };
 
-  // Calculate totals
-  const subtotal = orderItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
+  // Calculate total without discount and tax
+  const subtotal = orderItems.reduce((sum, item) => sum + item.quantity * item.price, 0);
 
-  // Calculate discount
-  const discountAmount = (subtotal * (parseFloat(discountValue) || 0)) / 100;
+  // Calculate discount amount
+  const calculateDiscount = () => {
+    return (subtotal * discount) / 100;
+  };
 
-  const afterDiscount = subtotal - discountAmount;
-  const tax = afterDiscount * 0.18; // 18% tax
-  const total = afterDiscount + tax;
+  const calculateTax = () => {
+    return (subtotal * tax) / 100;
+  };
+
+  const total = subtotal - calculateDiscount() + calculateTax();
 
   const getImageUrl = (imagePath: string) => {
     if (!imagePath) return "";
@@ -292,6 +324,54 @@ const DashboardPage = () => {
     }
     // Use relative path in development
     return imagePath;
+  };
+
+  // Add this function to handle the Pay button click
+  const handlePayClick = async () => {
+    try {
+      // Validate stock before opening payment modal
+      const stockValidation = await window.electron.validatePaymentStock(orderItems);
+      if (!stockValidation.success) {
+        toast.error(stockValidation.error);
+        return;
+      }
+      
+      // If validation passes, open payment modal
+      setShowPaymentModal(true);
+    } catch (error) {
+      console.error("Error validating stock:", error);
+      toast.error("Failed to validate stock. Please try again.");
+    }
+  };
+
+  const getLowStockClass = (product: Product) => {
+    if (product.stock <= 5 && !product.isNA) {
+      return 'border-red-100 animate-border-blink';
+    }
+    return 'border-gray-100';
+  };
+
+  // Add number pad handler functions
+  const handleDiscountNumber = (num: string) => {
+    if (num === 'back') {
+      setTempDiscount(prev => prev.slice(0, -1));
+      return;
+    }
+    if (num === 'clear') {
+      setTempDiscount('');
+      return;
+    }
+    if (num === 'save') {
+      const newDiscount = Math.min(Number(tempDiscount), 100);
+      setDiscount(newDiscount);
+      setShowDiscountPad(false);
+      setTempDiscount('');
+      return;
+    }
+    setTempDiscount(prev => {
+      const newValue = prev + num;
+      return Number(newValue) <= 100 ? newValue : prev;
+    });
   };
 
   return (
@@ -342,26 +422,32 @@ const DashboardPage = () => {
                 scrollbarColor: "#E5E7EB transparent",
               }}
             >
-              <div className="grid grid-cols-5 gap-4 p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-6 mb-20">
                 {filteredProducts.map((product) => (
                   <div
                     key={product.id}
                     onClick={() => addToOrder(product)}
-                    className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 h-[200px]"
+                    className={`bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer hover:shadow-md transition-all duration-200 border ${getLowStockClass(product)} flex flex-col h-[200px]`}
                   >
-                    <div className="w-full h-25">
+                    <style jsx global>{`
+                      .animate-border-blink {
+                        animation: borderBlink 1.5s infinite;
+                      }
+                      ${lowStockAnimation}
+                    `}</style>
+                    <div className="w-full h-[120px]">
                       {product.image_path ? (
                         <img
                           src={getImageUrl(product.image_path)}
                           alt={product.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-[120px] object-cover"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
                             target.src = "/images/default-product.png";
                           }}
                         />
                       ) : (
-                        <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+                        <div className="w-full h-[120px] bg-gray-100 flex items-center justify-center">
                           <svg
                             className="w-12 h-12 text-gray-300"
                             fill="none"
@@ -378,11 +464,11 @@ const DashboardPage = () => {
                         </div>
                       )}
                     </div>
-                    <div className="p-3">
-                      <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                    <div className="p-2 flex-1 flex flex-col space-y-0.5">
+                      <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">
                         {product.name}
                       </h3>
-                      <p className="text-blue-600 font-bold text-lg mt-1">
+                      <p className="text-blue-600 font-bold text-base">
                         Rs. {product.price.toFixed(2)}
                       </p>
                     </div>
@@ -398,10 +484,6 @@ const DashboardPage = () => {
           <div className="p-4 border-b border-gray-200">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-bold text-gray-800">Order Details</h2>
-              <button className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2">
-                <UserPlusIcon className="h-5 w-5" />
-                <span>Add Customer</span>
-              </button>
             </div>
           </div>
 
@@ -442,6 +524,7 @@ const DashboardPage = () => {
                     onClick={(e) => {
                       e.stopPropagation();
                       removeItem(item.id);
+                      setDiscount(0);
                     }}
                     className="p-1 rounded bg-red-500 text-white hover:bg-red-600 w-8 h-8 flex items-center justify-center"
                   >
@@ -455,45 +538,55 @@ const DashboardPage = () => {
           {/* Order Summary */}
           <div className="border-t border-gray-200 p-4">
             <div className="space-y-2">
+              <div className="flex justify-between items-center text-red-600">
+                <span>Discount</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={`${discount}%`}
+                    onClick={() => {
+                      setShowDiscountPad(true);
+                      setTempDiscount(discount.toString());
+                    }}
+                    className="w-20 px-2 py-1 border rounded text-right cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center text-red-600">
+                <span>Tax</span>
+                <div className="flex items-center gap-2">
+                  <span>{tax} %</span>
+                </div>
+              </div>
+
               <div className="flex justify-between">
                 <span>Items</span>
                 <span>
                   {orderItems.reduce((sum, item) => sum + item.quantity, 0)}
                 </span>
               </div>
+
               <div className="flex justify-between">
                 <span>Subtotal</span>
                 <span>Rs. {subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span>Discount:</span>
-                <div className="flex items-center w-32">
-                  <input
-                    type="number"
-                    className="w-full text-right border rounded py-1 px-2"
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(e.target.value)}
-                    min="0"
-                    max="100"
-                  />
-                </div>
-              </div>
-              {parseFloat(discountValue) > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount Amount:</span>
-                  <span>
-                    -Rs.{" "}
-                    {(
-                      (subtotal * (parseFloat(discountValue) || 0)) /
-                      100
-                    ).toFixed(2)}
-                  </span>
+
+              {discount > 0 && (
+                <div className="flex justify-between text-red-600">
+                  <span>Discount ({discount}%)</span>
+                  <span>- Rs. {calculateDiscount().toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span>Tax (18%)</span>
-                <span>Rs. {tax.toFixed(2)}</span>
-              </div>
+              {
+                tax > 0 && (
+                  <div className="flex justify-between text-blue-600">
+                    <span>Tax ({tax}%)</span>
+                    <span>Rs. {calculateTax().toFixed(2)}</span>
+                  </div>
+                )
+              }
               <div className="flex justify-between font-bold text-lg pt-2 border-t">
                 <span>Total:</span>
                 <span>Rs. {total.toFixed(2)}</span>
@@ -502,55 +595,47 @@ const DashboardPage = () => {
               {/* Action Buttons */}
               <div className="grid grid-cols-3 gap-2 mt-4">
                 <button
-                  onClick={() => setIsPaymentModalOpen(true)}
-                  className="flex items-center justify-center gap-2 bg-[#4CAF50] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity"
+                  onClick={handlePayClick}
+                  disabled={orderItems.length === 0}
+                  className={`flex items-center justify-center gap-2 py-2 px-4 rounded transition-opacity ${
+                    orderItems.length === 0 
+                      ? 'bg-[#4CAF50] hover:opacity-90 text-white cursor-not-allowed'
+                      : 'bg-[#4CAF50] hover:opacity-90 text-white'
+                  }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="M3 10h18M7 15h2m2 0h2"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
+                    <path d="M3 10h18M7 15h2m2 0h2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                   Pay
                 </button>
+
                 <button
-                  className="flex items-center justify-center gap-2 bg-[#26A69A] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity"
                   onClick={handleHoldOrder}
+                  disabled={orderItems.length === 0}
+                  className={`flex items-center justify-center gap-2 py-2 px-4 rounded transition-opacity ${
+                    orderItems.length === 0 
+                      ? 'bg-[#26A69A] hover:opacity-90 text-white cursor-not-allowed'
+                      : 'bg-[#26A69A] hover:opacity-90 text-white'
+                  }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <rect
-                      x="7"
-                      y="5"
-                      width="3"
-                      height="14"
-                      fill="white"
-                      rx="0.5"
-                    />
-                    <rect
-                      x="14"
-                      y="5"
-                      width="3"
-                      height="14"
-                      fill="white"
-                      rx="0.5"
-                    />
+                    <rect x="7" y="5" width="3" height="14" fill="currentColor" rx="0.5" />
+                    <rect x="14" y="5" width="3" height="14" fill="currentColor" rx="0.5" />
                   </svg>
                   Hold
                 </button>
+
                 <button
                   onClick={handleCancelOrder}
-                  className="flex items-center justify-center gap-2 bg-[#F44336] text-white py-2 px-4 rounded hover:opacity-90 transition-opacity"
+                  disabled={orderItems.length === 0}
+                  className={`flex items-center justify-center gap-2 py-2 px-4 rounded transition-opacity ${
+                    orderItems.length === 0 
+                      ? 'bg-[#F44336] hover:opacity-90 text-white cursor-not-allowed' 
+                      : 'bg-[#F44336] hover:opacity-90 text-white'
+                  }`}
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24">
-                    <path
-                      d="M6 18L18 6M6 6l12 12"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
+                    <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
                   </svg>
                   Cancel
                 </button>
@@ -621,6 +706,7 @@ const DashboardPage = () => {
                       : handleNumberClick(num.toString())
                   }
                   className="py-4 text-center border border-blue-200 rounded text-blue-500 hover:bg-blue-50 transition-colors text-lg"
+                  disabled={recalledOrderId !== null}
                 >
                   {num}
                 </button>
@@ -638,15 +724,69 @@ const DashboardPage = () => {
       )}
 
       <PaymentModal
-        isOpen={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        orderItems={orderItems}
+        discount={calculateDiscount()}
+        tax={calculateTax()}
         total={total}
         onPaymentComplete={handlePaymentComplete}
-        orderItems={orderItems}
-        subtotal={subtotal}
-        discount={discountAmount}
-        tax={tax}
       />
+
+      {/* Number Pad Popup */}
+      {showDiscountPad && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-4 w-80">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Enter Discount %</h3>
+              <button 
+                onClick={() => setShowDiscountPad(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+
+            <input
+              type="text"
+              className="w-full text-right text-2xl p-2 mb-4 border rounded"
+              value={tempDiscount}
+              readOnly
+            />
+
+            <div className="grid grid-cols-3 gap-2">
+              {[7, 8, 9, 4, 5, 6, 1, 2, 3, 'clear', 0, 'back'].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => handleDiscountNumber(num.toString())}
+                  className={`p-3 text-lg rounded ${
+                    typeof num === 'number'
+                      ? 'bg-white hover:bg-gray-50 border'
+                      : num === 'clear'
+                      ? 'bg-red-50 hover:bg-red-100 text-red-600'
+                      : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
+                  {num === 'back' ? (
+                    <BackspaceIcon className="h-6 w-6 mx-auto" />
+                  ) : num === 'clear' ? (
+                    'C'
+                  ) : (
+                    num
+                  )}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => handleDiscountNumber('save')}
+              className="w-full mt-2 bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+            >
+              Apply Discount
+            </button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

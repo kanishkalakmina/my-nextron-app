@@ -4,6 +4,8 @@ import Layout from "../components/Layout";
 import BillPreview from "../components/BillPreview";
 import toast from "react-hot-toast";
 import { useIPC } from "../hooks/useIPC";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { useRouter } from "next/router";
 
 interface BillSettings {
   id: string;
@@ -23,6 +25,7 @@ interface BillSettings {
 
 export default function BillSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
   const [settings, setSettings] = useState<BillSettings>({
     id: "",
     companyName: "",
@@ -167,239 +170,249 @@ export default function BillSettingsPage() {
       <div className="flex h-[calc(100vh-64px)]">
         {/* Left side - Settings Form */}
         <div className="w-1/2 p-6 overflow-y-auto border-r">
-          <h1 className="text-2xl font-bold mb-6">Bill Settings</h1>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Logo and Bill Width Section */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Visual Settings
-              </h3>
-              <div className="space-y-4">
-                {/* Logo Upload Section */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Company Logo
-                  </label>
-                  <div className="flex items-center space-x-4">
-                    {settings.logo && (
-                      <img
-                        src={settings.logo}
-                        alt="Company Logo"
-                        className="h-16 w-auto object-contain"
-                      />
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {settings.logo ? "Change Logo" : "Upload Logo"}
-                    </button>
-                    {settings.logo && (
+          <div className="p-6">
+            <div className="flex items-center mb-6">
+              <button 
+                onClick={() => router.push('/settings')}
+                className="mr-4 p-2 hover:bg-gray-100 rounded-full"
+              >
+                <ArrowLeftIcon className="h-6 w-6 text-gray-600" />
+              </button>
+              <h1 className="text-2xl font-bold">Bill Settings</h1>
+            </div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Logo and Bill Width Section */}
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Visual Settings
+                </h3>
+                <div className="space-y-4">
+                  {/* Logo Upload Section */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Company Logo
+                    </label>
+                    <div className="flex items-center space-x-4">
+                      {settings.logo && (
+                        <img
+                          src={settings.logo}
+                          alt="Company Logo"
+                          className="h-16 w-auto object-contain"
+                        />
+                      )}
                       <button
                         type="button"
-                        onClick={() =>
-                          setSettings((prev) => ({ ...prev, logo: "" }))
-                        }
-                        className="px-4 py-2 text-red-600 hover:text-red-700"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
-                        Remove
+                        {settings.logo ? "Change Logo" : "Upload Logo"}
                       </button>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleLogoUpload}
-                      className="hidden"
-                    />
+                      {settings.logo && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setSettings((prev) => ({ ...prev, logo: "" }))
+                          }
+                          className="px-4 py-2 text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      )}
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="hidden"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Bill Width Slider */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Bill Width: {settings.billWidth}px
-                  </label>
-                  <input
-                    type="range"
-                    name="billWidth"
-                    min="300"
-                    max="800"
-                    step="50"
-                    value={settings.billWidth}
-                    onChange={handleBillWidthChange}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Company Information Section */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Company Information
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    name="companyName"
-                    value={settings.companyName}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Tax ID
-                  </label>
-                  <input
-                    type="text"
-                    name="taxId"
-                    value={settings.taxId}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Address
-                  </label>
-                  <textarea
-                    name="address"
-                    value={settings.address}
-                    onChange={handleChange}
-                    rows={3}
-                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Contact Information Section */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Contact Information
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={settings.phone}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={settings.email}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Website
-                  </label>
-                  <input
-                    type="url"
-                    name="website"
-                    value={settings.website}
-                    onChange={handleChange}
-                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Settings Section */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Footer Settings
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Footer Text
-                  </label>
-                  <textarea
-                    name="footerText"
-                    value={settings.footerText}
-                    onChange={handleChange}
-                    rows={2}
-                    className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="showLogo"
-                      checked={settings.showLogo}
-                      onChange={handleChange}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label className="ml-2 block text-sm text-gray-900">
-                      Show Logo
+                  {/* Bill Width Slider */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Bill Width: {settings.billWidth}px
                     </label>
-                  </div>
-
-                  <div className="flex items-center">
                     <input
-                      type="checkbox"
-                      name="showTaxId"
-                      checked={settings.showTaxId}
-                      onChange={handleChange}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      type="range"
+                      name="billWidth"
+                      min="300"
+                      max="800"
+                      step="50"
+                      value={settings.billWidth}
+                      onChange={handleBillWidthChange}
+                      className="w-full"
                     />
-                    <label className="ml-2 block text-sm text-gray-900">
-                      Show Tax ID
-                    </label>
-                  </div>
-
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="showFooter"
-                      checked={settings.showFooter}
-                      onChange={handleChange}
-                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label className="ml-2 block text-sm text-gray-900">
-                      Show Footer
-                    </label>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="sticky bottom-0 bg-white border-t p-4 mt-6 -mx-6">
-              <button
-                type="submit"
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Update Bill Settings
-              </button>
-            </div>
-          </form>
+              {/* Company Information Section */}
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Company Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Company Name
+                    </label>
+                    <input
+                      type="text"
+                      name="companyName"
+                      value={settings.companyName}
+                      onChange={handleChange}
+                      className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Tax ID
+                    </label>
+                    <input
+                      type="text"
+                      name="taxId"
+                      value={settings.taxId}
+                      onChange={handleChange}
+                      className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Address
+                    </label>
+                    <textarea
+                      name="address"
+                      value={settings.address}
+                      onChange={handleChange}
+                      rows={3}
+                      className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Information Section */}
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Contact Information
+                </h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Phone
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={settings.phone}
+                      onChange={handleChange}
+                      className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={settings.email}
+                      onChange={handleChange}
+                      className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Website
+                    </label>
+                    <input
+                      type="url"
+                      name="website"
+                      value={settings.website}
+                      onChange={handleChange}
+                      className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Settings Section */}
+              <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  Footer Settings
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Footer Text
+                    </label>
+                    <textarea
+                      name="footerText"
+                      value={settings.footerText}
+                      onChange={handleChange}
+                      rows={2}
+                      className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="showLogo"
+                        checked={settings.showLogo}
+                        onChange={handleChange}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <label className="ml-2 block text-sm text-gray-900">
+                        Show Logo
+                      </label>
+                    </div>
+
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="showTaxId"
+                        checked={settings.showTaxId}
+                        onChange={handleChange}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <label className="ml-2 block text-sm text-gray-900">
+                        Show Tax ID
+                      </label>
+                    </div>
+
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        name="showFooter"
+                        checked={settings.showFooter}
+                        onChange={handleChange}
+                        className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <label className="ml-2 block text-sm text-gray-900">
+                        Show Footer
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="sticky bottom-0 bg-white border-t p-4 mt-6 -mx-6">
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Update Bill Settings
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
 
         {/* Right side - Bill Preview */}

@@ -55,7 +55,7 @@ try {
     -- Create categories table if not exists
     CREATE TABLE IF NOT EXISTS categories (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE,
       description TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -64,11 +64,12 @@ try {
     -- Create products table if not exists
     CREATE TABLE IF NOT EXISTS products (
       id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
+      name TEXT NOT NULL UNIQUE,
       description TEXT,
       price REAL NOT NULL,
       category_id TEXT,
       image_path TEXT,
+      isNA INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (category_id) REFERENCES categories(id)
@@ -119,7 +120,8 @@ try {
       amount_received REAL,
       change_amount REAL,
       status TEXT DEFAULT 'completed',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      cashier TEXT NOT NULL
     );
 
     -- Create invoiced_item table if not exists
@@ -170,10 +172,47 @@ try {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- Create Stock table if not exists
+    CREATE TABLE IF NOT EXISTS Stock (
+        id TEXT PRIMARY KEY,
+        product_id TEXT NOT NULL,
+        stock_quantity INTEGER NOT NULL,
+        updated_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (product_id) REFERENCES products(id)
+    );
+
+    -- Create general-settings table if not exists
+    CREATE TABLE IF NOT EXISTS general_settings (
+      id TEXT PRIMARY KEY,
+      setting_name TEXT NOT NULL UNIQUE,
+      setting_value TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
     // Enable foreign key support
     db.exec("PRAGMA foreign_keys = ON;");
+
+       // Check if cashier column exists in payments table
+       const tableInfo = db.prepare("PRAGMA table_info(payments)").all();
+       const cashierColumnExists = tableInfo.some(column => column.name === 'cashier');
+   
+       if (!cashierColumnExists) {
+           // Add cashier column if it doesn't exist
+           db.exec(`
+             ALTER TABLE payments 
+             ADD COLUMN cashier TEXT DEFAULT 'Unknown';
+           `);
+           
+           // Update existing records to have a default value
+           db.exec(`
+             UPDATE payments 
+             SET cashier = 'Unknown' 
+             WHERE cashier IS NULL;
+           `);
+       }
 } catch (error) {
     console.error("Database initialization error:", error);
     throw error;
@@ -263,8 +302,8 @@ const categoryQueries = {
 // Products CRUD
 const productQueries = {
     create: db.prepare(`
-    INSERT INTO products (id, name, description, price, category_id, image_path) 
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO products (id, name, description, price, category_id, image_path, isNA)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `),
     getAll: db.prepare(`
     SELECT 
@@ -291,6 +330,7 @@ const productQueries = {
         price = ?, 
         category_id = ?,
         image_path = ?,
+        isNA = ?,
         updated_at = CURRENT_TIMESTAMP 
     WHERE id = ?
   `),
@@ -375,10 +415,11 @@ const holdOrderQueries = {
 // Payment CRUD
 const paymentQueries = {
     create: db.prepare(`
-    INSERT INTO payments (id, order_id, amount, payment_method, payment_date, subtotal, discount, tax, total, amount_received, change_amount, status, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO payments (id, order_id, amount, payment_method, payment_date, subtotal, discount, tax, total, amount_received, change_amount, status, created_at, cashier)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `),
     getAll: db.prepare("SELECT * FROM payments ORDER BY created_at DESC"),
+
     getById: db.prepare("SELECT * FROM payments WHERE id = ?"),
     getByOrderId: db.prepare("SELECT * FROM payments WHERE order_id = ?"),
     searchPayments: db.prepare(`
@@ -386,6 +427,20 @@ const paymentQueries = {
     WHERE order_id LIKE ? OR payment_method LIKE ? OR status LIKE ?
     ORDER BY created_at DESC
   `),
+    getSalesReportData: db.prepare(`
+        SELECT 
+            p.created_at,
+            p.order_id,
+            pr.name as product_name,
+            i.quantity,
+            i.price,
+            p.cashier
+        FROM payments p
+        JOIN invoiced_item i ON p.id = i.payment_id
+        JOIN products pr ON i.product_id = pr.id
+        WHERE DATE(p.created_at) BETWEEN ? AND ?
+        ORDER BY p.created_at DESC
+    `),
 };
 
 // Invoiced Item CRUD
@@ -489,6 +544,42 @@ const billTemplateQueries = {
     delete: db.prepare("DELETE FROM bill_templates WHERE id = ?"),
 };
 
+// Stock CRUD
+const stockQueries = {
+    create: db.prepare(`
+        INSERT INTO Stock (id, product_id, stock_quantity, updated_date)
+        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    `),
+    update: db.prepare(`
+        UPDATE Stock 
+        SET stock_quantity = ?, 
+            updated_date = CURRENT_TIMESTAMP
+        WHERE product_id = ?
+    `),
+    getByProductId: db.prepare(`
+        SELECT * FROM Stock WHERE product_id = ?
+    `),
+    delete: db.prepare(`
+        DELETE FROM Stock WHERE product_id = ?
+    `),
+};
+
+// general settings CRUD
+const generalSettingsQueries = {
+    create: db.prepare(`
+        INSERT INTO general_settings (id, setting_name, setting_value)
+        VALUES (?, ?, ?)
+    `),
+    update: db.prepare(`
+        UPDATE general_settings 
+        SET setting_value = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE setting_name = ?
+    `),
+    getAll: db.prepare("SELECT * FROM general_settings"),
+    getByName: db.prepare("SELECT * FROM general_settings WHERE setting_name = ?"),
+};
+
 export {
     categoryQueries,
     productQueries,
@@ -499,4 +590,6 @@ export {
     paymentQueries,
     invoicedItemQueries,
     billTemplateQueries,
+    stockQueries,
+    generalSettingsQueries
 };

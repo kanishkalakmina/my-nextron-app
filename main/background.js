@@ -3,7 +3,8 @@ import {
     app,
     ipcMain,
     dialog,
-    protocol
+    protocol,
+    BrowserWindow
 } from "electron";
 import serve from "electron-serve";
 import {
@@ -18,6 +19,8 @@ import {
     userHandlers,
     roleHandlers,
     billTemplateHandlers,
+    reportHandlers,
+    generalSettingsHandlers,
 } from "./ipc/handlers";
 
 const isProd = process.env.NODE_ENV === "production";
@@ -87,11 +90,9 @@ const registerIpcHandlers = () => {
     ipcMain.handle("save-payment", paymentHandlers.savePayment);
     ipcMain.handle("get-all-payments", paymentHandlers.getAllPayments);
     ipcMain.handle("get-payment-by-id", paymentHandlers.getPaymentById);
-    ipcMain.handle(
-        "get-payment-by-order-id",
-        paymentHandlers.getPaymentByOrderId
-    );
+    ipcMain.handle("get-payment-by-order-id", paymentHandlers.getPaymentByOrderId);
     ipcMain.handle("search-payments", paymentHandlers.searchPayments);
+    ipcMain.handle("validate-payment-stock", paymentHandlers.validatePaymentStock);
 
     // User management
     ipcMain.handle("getAllUsers", userHandlers.getAllUsers);
@@ -116,20 +117,30 @@ const registerIpcHandlers = () => {
     ipcMain.handle("create-bill-template", billTemplateHandlers.createBillTemplate);
     ipcMain.handle("get-all-bill-templates", billTemplateHandlers.getAllBillTemplates);
     ipcMain.handle("update-bill-template", billTemplateHandlers.updateBillTemplate);
-};
+
+    //reports
+    ipcMain.handle("get-sales-report", reportHandlers.getSalesReport);
+
+    // General Settings
+    ipcMain.handle("update-general-settings", generalSettingsHandlers.updateGeneralSettings);
+    ipcMain.handle("get-general-settings", generalSettingsHandlers.getGeneralSettings);
+}
 
 (async () => {
     await app.whenReady();
 
     const mainWindow = createWindow("main", {
-        width: 1000,
-        height: 600,
+        width: 1920,
+        height: 1080,
+        // autoHideMenuBar: true,
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
             nodeIntegration: false,
             contextIsolation: true,
         },
     });
+
+    // mainWindow.removeMenu();
 
     registerIpcHandlers();
 

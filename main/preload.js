@@ -290,6 +290,13 @@ contextBridge.exposeInMainWorld("electron", {
     // Payments
     savePayment: async (paymentDetails) => {
         try {
+            // First validate stock
+            const stockValidation = await ipcRenderer.invoke("validate-payment-stock", paymentDetails.orderItems);
+            if (!stockValidation.success) {
+                return stockValidation; // Return the error if stock validation fails
+            }
+
+            // If stock validation passes, proceed with payment
             return await ipcRenderer.invoke("save-payment", paymentDetails);
         } catch (error) {
             console.error("IPC Error:", error);
@@ -450,4 +457,54 @@ contextBridge.exposeInMainWorld("electron", {
             };
         }
     },
+    
+    //reports
+    getSalesReport: async (dateRange) => {
+        try {
+            return await ipcRenderer.invoke('get-sales-report', dateRange);
+        } catch (error) {
+            console.error('IPC Error:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    },
+
+    // Add this new function
+    validatePaymentStock: async (orderItems) => {
+        try {
+            return await ipcRenderer.invoke("validate-payment-stock", orderItems);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+
+    // General Settings
+    updateGeneralSettings: async (data) => {
+        try {
+            return await ipcRenderer.invoke("update-general-settings", data);
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    },
+    getGeneralSettings: async () => {
+        try {
+            return await ipcRenderer.invoke("get-general-settings");
+        } catch (error) {
+            console.error("IPC Error:", error);
+            return {
+                success: false,
+                error: error.message,
+            };
+        }
+    }, 
 });

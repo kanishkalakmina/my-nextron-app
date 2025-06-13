@@ -9,37 +9,41 @@ import Bill from "./Bill";
 import toast from "react-hot-toast";
 import crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
+import { useStock } from "../context/StockContext";
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  total: number;
-  onPaymentComplete: () => void;
   orderItems: Array<{
     id: string;
     name: string;
     price: number;
     quantity: number;
   }>;
-  subtotal: number;
   discount: number;
   tax: number;
+  total: number;
+  onPaymentComplete: () => void;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
-  total,
-  onPaymentComplete,
   orderItems,
-  subtotal,
   discount,
   tax,
+  total,
+  onPaymentComplete,
 }) => {
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("cash");
+  
+  const subtotal = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+
   const billRef = useRef<HTMLDivElement>(null);
   const hiddenBillRef = useRef<HTMLDivElement>(null);
+
+   const { checkLowStock } = useStock();
 
   if (!isOpen) return null;
 
@@ -160,10 +164,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const handlePayment = async () => {
     const amountPaid = parseFloat(amount) || 0;
     if (amountPaid < total && paymentMethod === "cash") {
-      alert("Insufficient amount");
+      toast.error("Insufficient amount");
       return;
     }
-
+    const { username: cashier } = JSON.parse(localStorage.getItem("userData") || "{}");
     try {
       // Save payment details to database
       const paymentDetails = {
@@ -181,13 +185,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         status: "paid",
         created_at: new Date().toISOString(),
         orderItems,
+        cashier: cashier,
       };
 
       const result = await window.electron.savePayment(paymentDetails);
       console.log(result);
       if (!result.success) {
-        throw new Error(result.error || "Failed to save payment");
+        toast.error(result.error || "Failed to process payment");
+        return;
       }
+      
+      // Check stock levels after successful payment
+      await checkLowStock();
       printBill();
       onPaymentComplete();
       onClose();
@@ -195,6 +204,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       console.error("Payment error:", error);
       toast.error("Failed to process payment. Please try again.");
     }
+    setAmount("");
   };
 
   const getChange = () => {
@@ -208,7 +218,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Payment</h2>
           <button
-            onClick={onClose}
+            onClick={ (e)=> {onClose(); setAmount("")} }
             className="text-gray-500 hover:text-gray-700"
           >
             <XMarkIcon className="h-6 w-6" />
@@ -263,6 +273,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
           <div className="bg-gray-50 p-4 rounded-lg mb-4">
             <div className="flex justify-between mb-2">
+              <span>Subtotal:</span>
+              <span>Rs. {subtotal.toFixed(2)}</span>
+            </div>
+            {discount > 0 && (
+              <div className="flex justify-between mb-2">
+                <span>Discount:</span>
+                <span>- Rs. {discount.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between mb-2">
+              <span>Tax:</span>
+              <span>Rs. {tax.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between font-bold border-t border-gray-200 pt-2">
               <span>Total Amount:</span>
               <span>Rs. {total.toFixed(2)}</span>
             </div>
@@ -323,6 +347,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             amountReceived={parseFloat(amount) || undefined}
             change={getChange()}
             paymentMethod={paymentMethod}
+            billRefNo={createTimestampId()}
           />
         </div>
       </div>

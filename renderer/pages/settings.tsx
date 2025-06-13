@@ -40,6 +40,8 @@ const SettingsPage = () => {
   const handleCardClick = (setting: string) => {
     if (setting === "bill") {
       router.push("/bill-settings");
+    } else if (setting === "general"){
+      router.push("/general-settings");
     } else {
       // Handle other settings
       console.log(`Clicked ${setting} settings`);
@@ -60,7 +62,7 @@ const SettingsPage = () => {
             icon={<FaFileInvoiceDollar />}
             onClick={() => handleCardClick("bill")}
           />
-          <SettingsCard
+          {/* <SettingsCard
             title="System Settings"
             description="Manage system configurations, users, and permissions"
             icon={<FaCog />}
@@ -71,7 +73,7 @@ const SettingsPage = () => {
             description="Customize report layouts and scheduling options"
             icon={<FaChartBar />}
             onClick={() => handleCardClick("report")}
-          />
+          /> */}
           <SettingsCard
             title="General Settings"
             description="Configure general application preferences and options"
