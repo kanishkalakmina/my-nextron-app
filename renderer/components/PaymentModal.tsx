@@ -38,8 +38,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [amount, setAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "cash" | "cardcash">("cash");
 
-  const [amountInCard, setAmountInCard] = useState(0);
-  const [amountReceivedCardCash, setAmountReceivedCardCash] = useState(0);
+  const [amountInCard, setAmountInCard] = useState("");
+  const [amountReceivedCardCash, setAmountReceivedCardCash] = useState("");
   const [activeCardCashField, setActiveCardCashField] = useState<'card' | 'received'>('received');
 
   const subtotal = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
@@ -366,7 +366,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   type="number"
                   min={0}
                   max={total}
-                  value={amountInCard}
+                  value={amountInCard === "" ? "" : Number(amountInCard) > total ? total : amountInCard}
                   onFocus={() => setActiveCardCashField('card')}
                   className={`border rounded px-2 py-1 w-full text-right ${activeCardCashField === 'card' ? 'ring-2 ring-blue-400' : ''}`}
                   readOnly
@@ -375,7 +375,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
             <div className="mb-3 flex justify-between">
               <span>Amount in Cash:</span>
-              <span>Rs. {(total - amountInCard).toFixed(2)}</span>
+              <span>Rs. {(total - (parseFloat(amountInCard) || 0)).toFixed(2)}</span>
             </div>
             <div className="mb-3 flex justify-between items-center">
               <label htmlFor="amountReceivedCardCash" className={activeCardCashField === 'received' ? 'font-bold text-blue-600' : ''} onClick={() => setActiveCardCashField('received')}>Amount Received:</label>
@@ -394,7 +394,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
             <div className="mb-3 flex justify-between">
               <span>Change:</span>
-              <span>Rs. {Math.max(0, amountReceivedCardCash - (total - amountInCard)).toFixed(2)}</span>
+              <span>Rs. {Math.max(0, (parseFloat(amountReceivedCardCash) || 0) - (total - (parseFloat(amountInCard) || 0))).toFixed(2)}</span>
             </div>
             {/* Unified number pad for Amount in Card / Amount Received */}
             <div className="mb-3 grid grid-cols-3 gap-2">
@@ -406,32 +406,36 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                       if (num === "back") {
                         setAmountInCard((prev) => {
                           const str = String(prev);
-                          return Number(str.length > 1 ? str.slice(0, -1) : 0);
+                          const nextStr = str.length > 1 ? str.slice(0, -1) : "";
+                          return nextStr === "" ? "" : nextStr;
                         });
                       } else if (num === ".") {
                         if (!String(amountInCard).includes(".")) {
-                          setAmountInCard((prev) => Number(String(prev) + "."));
+                          setAmountInCard((prev) => String(prev) + ".");
                         }
                       } else {
                         setAmountInCard((prev) => {
-                          const next = String(prev) === "0" ? String(num) : String(prev) + String(num);
-                          let val = Number(next);
-                          if (val < 0) val = 0;
-                          if (val > total) val = total;
-                          return val;
+                          const str = String(prev);
+                          const next = str === "0" ? String(num) : str + String(num);
+                          return next;
                         });
                       }
                     } else {
                       if (num === "back") {
-                        setAmountReceivedCardCash((prev) => Number(String(prev).slice(0, -1)) || 0);
+                        setAmountReceivedCardCash((prev) => {
+                          const str = String(prev);
+                          const nextStr = str.length > 1 ? str.slice(0, -1) : "";
+                          return nextStr === "" ? "" : nextStr;
+                        });
                       } else if (num === ".") {
                         if (!String(amountReceivedCardCash).includes(".")) {
-                          setAmountReceivedCardCash((prev) => Number(String(prev) + "."));
+                          setAmountReceivedCardCash((prev) => String(prev) + ".");
                         }
                       } else {
                         setAmountReceivedCardCash((prev) => {
-                          const next = String(prev) === "0" ? String(num) : String(prev) + String(num);
-                          return Number(next);
+                          const str = String(prev);
+                          const next = str === "0" ? String(num) : str + String(num);
+                          return next;
                         });
                       }
                     }
@@ -465,10 +469,10 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                   discount,
                   tax,
                   total,
-                  amount_received: amountReceivedCardCash, // user input
-                  card_amount: amountInCard,
-                  cash_amount: total - amountInCard,
-                  change_amount: Math.max(0, amountReceivedCardCash - (total - amountInCard)),
+                  amount_received: parseFloat(amountReceivedCardCash) || 0, // user input
+                  card_amount: parseFloat(amountInCard) || 0,
+                  cash_amount: total - (parseFloat(amountInCard) || 0),
+                  change_amount: Math.max(0, (parseFloat(amountReceivedCardCash) || 0) - (total - (parseFloat(amountInCard) || 0))),
                   status: "paid",
                   created_at: new Date().toISOString(),
                   orderItems,
