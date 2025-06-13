@@ -36,8 +36,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   onPaymentComplete,
 }) => {
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("cash");
-  
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "cash" | "cardcash">("cash");
+  const [showCardCashModal, setShowCardCashModal] = useState(false);
+  const [amountInCard, setAmountInCard] = useState(0);
+  const [amountReceivedCardCash, setAmountReceivedCardCash] = useState(0);
+
   const subtotal = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
   const billRef = useRef<HTMLDivElement>(null);
@@ -226,7 +229,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
 
         <div className="mb-6">
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-3 gap-4 mb-4">
             <button
               className={`p-6 rounded-lg border-2 transition-all duration-200 flex flex-col items-center justify-center gap-3 ${
                 paymentMethod === "cash"
@@ -267,6 +270,29 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 }`}
               >
                 Card
+              </span>
+            </button>
+            <button
+              className={`p-6 rounded-lg border-2 transition-all duration-200 flex flex-col items-center justify-center gap-3 ${
+                paymentMethod === "cardcash"
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+              }`}
+              onClick={() => {
+                setPaymentMethod("cardcash");
+                setShowCardCashModal(true);
+              }}
+            >
+              <div className="flex items-center gap-1">
+                <CreditCardIcon className={`h-6 w-6 ${paymentMethod === "cardcash" ? "text-blue-500" : "text-gray-400"}`} />
+                <BanknotesIcon className={`h-6 w-6 ${paymentMethod === "cardcash" ? "text-blue-500" : "text-gray-400"}`} />
+              </div>
+              <span
+                className={`font-medium ${
+                  paymentMethod === "cardcash" ? "text-blue-500" : "text-gray-600"
+                }`}
+              >
+                Card & Cash
               </span>
             </button>
           </div>
@@ -351,6 +377,120 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           />
         </div>
       </div>
+
+      {/* Card & Cash Modal */}
+      {showCardCashModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg w-[400px] p-6 relative">
+            <button
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+              onClick={() => {
+                setShowCardCashModal(false);
+                setPaymentMethod("cash");
+                setAmountInCard(0);
+                setAmountReceivedCardCash(0);
+              }}
+            >
+              <XMarkIcon className="h-5 w-5" />
+            </button>
+            <h3 className="text-lg font-bold mb-4">Card & Cash Payment</h3>
+            <div className="mb-3 flex justify-between">
+              <span>Total Amount:</span>
+              <span className="font-bold">Rs. {total.toFixed(2)}</span>
+            </div>
+            <div className="mb-3 flex justify-between items-center">
+              <label htmlFor="amountInCard">Amount in Card:</label>
+              <div className="flex items-center w-32">
+                <span className="mr-1">Rs.</span>
+                <input
+                  id="amountInCard"
+                  type="number"
+                  min={0}
+                  max={total}
+                  value={amountInCard}
+                  onChange={e => {
+                    let val = Number(e.target.value);
+                    if (val < 0) val = 0;
+                    if (val > total) val = total;
+                    setAmountInCard(val);
+                  }}
+                  className="border rounded px-2 py-1 w-full text-right"
+                />
+              </div>
+            </div>
+            <div className="mb-3 flex justify-between">
+              <span>Amount in Cash:</span>
+              <span className="font-bold">Rs. {(total - amountInCard).toFixed(2)}</span>
+            </div>
+            <div className="mb-3 flex justify-between items-center">
+              <label htmlFor="amountReceivedCardCash">Amount Received:</label>
+              <div className="flex items-center w-32">
+                <span className="mr-1">Rs.</span>
+                <input
+                  id="amountReceivedCardCash"
+                  type="number"
+                  min={0}
+                  value={amountReceivedCardCash}
+                  onChange={e => {
+                    let val = Number(e.target.value);
+                    if (val < 0) val = 0;
+                    setAmountReceivedCardCash(val);
+                  }}
+                  className="border rounded px-2 py-1 w-full text-right"
+                />
+              </div>
+            </div>
+            <div className="mb-5 flex justify-between">
+              <span>Change:</span>
+              <span className="font-bold">Rs. {Math.max(0, amountReceivedCardCash - (total - amountInCard)).toFixed(2)}</span>
+            </div>
+            <button
+              className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+              onClick={async () => {
+                // Save as a combined payment
+                const { username: cashier } = JSON.parse(localStorage.getItem("userData") || "{}");
+                const paymentDetails = {
+                  id: uuidv4(),
+                  order_id: createTimestampId(),
+                  amount: total,
+                  payment_method: "cardcash",
+                  payment_date: new Date().toISOString(),
+                  subtotal,
+                  discount,
+                  tax,
+                  total,
+                  amount_received: amountReceivedCardCash, // user input
+                  card_amount: amountInCard,
+                  cash_amount: total - amountInCard,
+                  change_amount: Math.max(0, amountReceivedCardCash - (total - amountInCard)),
+                  status: "paid",
+                  created_at: new Date().toISOString(),
+                  orderItems,
+                  cashier: cashier,
+                };
+                try {
+                  const result = await window.electron.savePayment(paymentDetails);
+                  if (!result.success) {
+                    toast.error(result.error || "Failed to process payment");
+                    return;
+                  }
+                  await checkLowStock();
+                  printBill();
+                  onPaymentComplete();
+                  onClose();
+                } catch (error) {
+                  toast.error("Failed to process payment. Please try again.");
+                }
+                setShowCardCashModal(false);
+                setAmountInCard(0);
+                setAmountReceivedCardCash(0);
+              }}
+            >
+              Complete Payment
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
