@@ -25,12 +25,8 @@ jobs:
       - name: Build Electron app
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: npm run build
-
-      - name: Read version from package.json
-        id: get_version
-        run: echo "RELEASE_VERSION=$(node -p \"require('./package.json').version\")" >> $GITHUB_ENV
-
+        run: npm run Build
+        
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
