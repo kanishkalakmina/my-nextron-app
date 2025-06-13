@@ -2,7 +2,7 @@
     "private": true,
     "name": "my-nextron-app",
     "description": "My application description",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "author": "SkyLineCode <skylinecode@gmail.com>",
     "main": "app/background.js",
     "scripts": {
