@@ -1,4 +1,4 @@
-name: Release on Production Push
+name: Build Electron app
 
 on:
   push:
@@ -23,9 +23,7 @@ jobs:
         run: npm install
 
       - name: Build Electron app
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        run: npm run build -- --publish always
+        run: npm run build 
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
