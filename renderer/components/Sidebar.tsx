@@ -187,6 +187,7 @@ export default function Sidebar() {
           <div className="text-center text-xs text-gray-500 font-bold">
             <p className="mt-2">© 2025 All Rights Reserved</p>
             <p>Developed by Skyline Code</p>
+            <p>Version 1.0.3</p>
           </div>
         )}
 
