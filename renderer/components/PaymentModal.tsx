@@ -36,8 +36,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   onPaymentComplete,
 }) => {
   const [amount, setAmount] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "cash">("cash");
-  
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "cash" | "cardcash">("cash");
+
+  const [amountInCard, setAmountInCard] = useState("");
+  const [amountReceivedCardCash, setAmountReceivedCardCash] = useState("");
+  const [activeCardCashField, setActiveCardCashField] = useState<'card' | 'received'>('received');
+
   const subtotal = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
   const billRef = useRef<HTMLDivElement>(null);
@@ -200,6 +204,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       printBill();
       onPaymentComplete();
       onClose();
+      setAmountInCard("");
+      setAmountReceivedCardCash("");
     } catch (error) {
       console.error("Payment error:", error);
       toast.error("Failed to process payment. Please try again.");
@@ -213,12 +219,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg w-[500px] p-6">
+    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-lg w-[500px] max-h-[90vh] p-8 relative flex flex-col overflow-x-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold">Payment</h2>
           <button
-            onClick={ (e)=> {onClose(); setAmount("")} }
+            onClick={() => {
+              onClose();
+              setAmount("");
+              setAmountInCard("");
+              setAmountReceivedCardCash("");
+            }}
             className="text-gray-500 hover:text-gray-700"
           >
             <XMarkIcon className="h-6 w-6" />
@@ -226,7 +237,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         </div>
 
         <div className="mb-6">
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-3 gap-4 mb-4">
             <button
               className={`p-6 rounded-lg border-2 transition-all duration-200 flex flex-col items-center justify-center gap-3 ${
                 paymentMethod === "cash"
@@ -269,6 +280,29 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 Card
               </span>
             </button>
+            <button
+              className={`p-6 rounded-lg border-2 transition-all duration-200 flex flex-col items-center justify-center gap-3 ${
+                paymentMethod === "cardcash"
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-blue-300 hover:bg-gray-50"
+              }`}
+              onClick={() => {
+                setPaymentMethod("cardcash");
+                setActiveCardCashField('card');
+              }}
+            >
+              <div className="flex items-center gap-1">
+                <CreditCardIcon className={`h-6 w-6 ${paymentMethod === "cardcash" ? "text-blue-500" : "text-gray-400"}`} />
+                <BanknotesIcon className={`h-6 w-6 ${paymentMethod === "cardcash" ? "text-blue-500" : "text-gray-400"}`} />
+              </div>
+              <span
+                className={`font-medium ${
+                  paymentMethod === "cardcash" ? "text-blue-500" : "text-gray-600"
+                }`}
+              >
+                Card & Cash
+              </span>
+            </button>
           </div>
 
           <div className="bg-gray-50 p-4 rounded-lg mb-4">
@@ -292,9 +326,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             </div>
             {paymentMethod === "cash" && (
               <>
-                <div className="flex justify-between mb-2">
-                  <span>Amount Received:</span>
-                  <span>Rs. {parseFloat(amount || "0").toFixed(2)}</span>
+                <div className="mb-3 flex justify-between items-center">
+                  <label htmlFor="amountReceivedCash" className="font-bold text-blue-600">Amount Received:</label>
+                  <div className="flex items-center w-32">
+                    <span className="mr-1">Rs.</span>
+                    <input
+                      id="amountReceivedCash"
+                      type="number"
+                      min={0}
+                      value={amount}
+                      onChange={e => setAmount(e.target.value)}
+                      className="w-full px-2 py-1 border-2 rounded focus:outline-none focus:border-orange-400 text-right"
+                      style={{ boxShadow: '0 0 0 2px #e0e7ff' }}
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-between font-bold">
                   <span>Change:</span>
@@ -327,12 +372,161 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           )}
         </div>
 
-        <button
-          onClick={handlePayment}
-          className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600"
-        >
-          Complete Payment
-        </button>
+        {/* Card & Cash UI (now inline) */}
+        {paymentMethod === "cardcash" ? (
+          <>
+
+            <div className="mb-3 flex justify-between items-center">
+              <label htmlFor="amountInCard" className={activeCardCashField === 'card' ? 'font-bold text-blue-600' : ''} onClick={() => setActiveCardCashField('card')}>Amount in Card:</label>
+              <div className="flex items-center w-32">
+                <span className="mr-1">Rs.</span>
+                <input
+                  id="amountInCard"
+                  type="number"
+                  min={0}
+                  max={total}
+                  value={amountInCard === "" ? "" : Number(amountInCard) > total ? total : amountInCard}
+                  onFocus={() => setActiveCardCashField('card')}
+                  className={`border rounded px-2 py-1 w-full text-right ${activeCardCashField === 'card' ? 'ring-2 ring-blue-400' : ''}`}
+                  readOnly
+                />
+              </div>
+            </div>
+            <div className="mb-3 flex justify-between">
+              <span>Amount in Cash:</span>
+              <span>Rs. {(total - (parseFloat(amountInCard) || 0)).toFixed(2)}</span>
+            </div>
+            <div className="mb-3 flex justify-between items-center">
+              <label htmlFor="amountReceivedCardCash" className={activeCardCashField === 'received' ? 'font-bold text-blue-600' : ''} onClick={() => setActiveCardCashField('received')}>Amount Received:</label>
+              <div className="flex items-center w-32">
+                <span className="mr-1">Rs.</span>
+                <input
+                  id="amountReceivedCardCash"
+                  type="number"
+                  min={0}
+                  value={amountReceivedCardCash}
+                  onFocus={() => setActiveCardCashField('received')}
+                  className={`border rounded px-2 py-1 w-full text-right ${activeCardCashField === 'received' ? 'ring-2 ring-blue-400' : ''}`}
+                  readOnly
+                />
+              </div>
+            </div>
+            <div className="mb-3 flex justify-between">
+              <span>Change:</span>
+              <span>Rs. {Math.max(0, (parseFloat(amountReceivedCardCash) || 0) - (total - (parseFloat(amountInCard) || 0))).toFixed(2)}</span>
+            </div>
+            {/* Unified number pad for Amount in Card / Amount Received */}
+            <div className="mb-3 grid grid-cols-3 gap-2">
+              {[7, 8, 9, 4, 5, 6, 1, 2, 3, "back", 0, "."].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => {
+                    if (activeCardCashField === 'card') {
+                      if (num === "back") {
+                        setAmountInCard((prev) => {
+                          const str = String(prev);
+                          const nextStr = str.length > 1 ? str.slice(0, -1) : "";
+                          return nextStr === "" ? "" : nextStr;
+                        });
+                      } else if (num === ".") {
+                        if (!String(amountInCard).includes(".")) {
+                          setAmountInCard((prev) => String(prev) + ".");
+                        }
+                      } else {
+                        setAmountInCard((prev) => {
+                          const str = String(prev);
+                          const next = str === "0" ? String(num) : str + String(num);
+                          return next;
+                        });
+                      }
+                    } else {
+                      if (num === "back") {
+                        setAmountReceivedCardCash((prev) => {
+                          const str = String(prev);
+                          const nextStr = str.length > 1 ? str.slice(0, -1) : "";
+                          return nextStr === "" ? "" : nextStr;
+                        });
+                      } else if (num === ".") {
+                        if (!String(amountReceivedCardCash).includes(".")) {
+                          setAmountReceivedCardCash((prev) => String(prev) + ".");
+                        }
+                      } else {
+                        setAmountReceivedCardCash((prev) => {
+                          const str = String(prev);
+                          const next = str === "0" ? String(num) : str + String(num);
+                          return next;
+                        });
+                      }
+                    }
+                  }}
+                  className={`$ {
+                    num === "back"
+                      ? "bg-red-50 hover:bg-red-100 flex items-center justify-center"
+                      : "bg-white hover:bg-gray-50"
+                  } border border-gray-200 rounded p-3 text-lg`}
+                >
+                  {num === "back" ? (
+                    <BackspaceIcon className="h-6 w-6 text-red-500" />
+                  ) : (
+                    num
+                  )}
+                </button>
+              ))}
+            </div>
+            <button
+              className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
+              onClick={async () => {
+                // Save as a combined payment
+                const { username: cashier } = JSON.parse(localStorage.getItem("userData") || "{}");
+                const paymentDetails = {
+                  id: uuidv4(),
+                  order_id: createTimestampId(),
+                  amount: total,
+                  payment_method: "cardcash",
+                  payment_date: new Date().toISOString(),
+                  subtotal,
+                  discount,
+                  tax,
+                  total,
+                  amount_received: parseFloat(amountReceivedCardCash) || 0, // user input
+                  card_amount: parseFloat(amountInCard) || 0,
+                  cash_amount: total - (parseFloat(amountInCard) || 0),
+                  change_amount: Math.max(0, (parseFloat(amountReceivedCardCash) || 0) - (total - (parseFloat(amountInCard) || 0))),
+                  status: "paid",
+                  created_at: new Date().toISOString(),
+                  orderItems,
+                  cashier: cashier,
+                };
+                try {
+                  const result = await window.electron.savePayment(paymentDetails);
+                  if (!result.success) {
+                    toast.error(result.error || "Failed to process payment");
+                    return;
+                  }
+                  await checkLowStock();
+                  printBill();
+                  onPaymentComplete();
+                  onClose();
+                  setAmountInCard("");
+                  setAmountReceivedCardCash("");
+                } catch (error) {
+                  toast.error("Failed to process payment. Please try again.");
+                }
+                setAmountInCard("");
+                setAmountReceivedCardCash("");
+              }}
+            >
+              Complete Payment
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={handlePayment}
+            className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600"
+          >
+            Complete Payment
+          </button>
+        )}
       </div>
 
       {/* Hidden bill for printing */}
@@ -346,11 +540,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             total={total}
             amountReceived={parseFloat(amount) || undefined}
             change={getChange()}
-            paymentMethod={paymentMethod}
+            paymentMethod={paymentMethod === 'cardcash' ? 'cash' : paymentMethod}
             billRefNo={createTimestampId()}
           />
         </div>
       </div>
+
+
     </div>
   );
 };
